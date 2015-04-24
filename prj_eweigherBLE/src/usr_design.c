@@ -216,6 +216,20 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
         case QPPS_CFG_INDNTF_IND:
             break;
 
+#if	(BLE_OTA_SERVER)						
+        case OTAS_TRANSIMIT_STATUS_IND:
+            QPRINTF(" APP get OTA transmit status = %d , describe = %d \r\n" , ((struct otas_transimit_status_ind*)param)->status,
+                                                                              ((struct otas_transimit_status_ind*)param)->status_des);
+            
+            //only need response once when ota status is in ota status start request
+            if(((struct otas_transimit_status_ind*)param)->status == OTA_STATUS_START_REQ)  
+            {
+                app_ota_ctrl_resp(START_OTA);
+            }
+            break;
+//end
+#endif
+
         default:
             break;
     }

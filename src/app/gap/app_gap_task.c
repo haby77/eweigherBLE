@@ -451,7 +451,12 @@ int app_gap_set_mode_req_cmp_evt_handler(ke_msg_id_t const msgid, struct gap_eve
         app_env.scanrsp_data, app_set_scan_rsp_data(app_get_local_service_flag()),
         GAP_ADV_FAST_INTV1, GAP_ADV_FAST_INTV2);
 #endif
-        // Set App to IDLE status here, bondale complete
+				// start adv
+				app_gap_adv_start_req(GAP_GEN_DISCOVERABLE|GAP_UND_CONNECTABLE,
+															app_env.adv_data, app_set_adv_data(GAP_GEN_DISCOVERABLE),
+															app_env.scanrsp_data, app_set_scan_rsp_data(app_get_local_service_flag()),
+															GAP_ADV_FAST_INTV1, GAP_ADV_FAST_INTV2);        
+				// Set App to IDLE status here, bondale complete
         ke_state_set(TASK_APP, APP_IDLE);
         QPRINTF("QN BLE is ready.\r\n");
         break;

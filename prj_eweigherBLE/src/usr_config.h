@@ -232,5 +232,9 @@
 // #define CFG_PRF_CSCPS
 // #define CFG_TASK_CSCPS   TASK_PRF1
 
+/// OTA Server Role
+ #define CFG_PRF_OTAS
+ #define CFG_TASK_OTAS   TASK_PRF7
+
 #endif
 
