@@ -161,13 +161,13 @@ int app_qpps_data_send_cfm_handler(ke_msg_id_t const msgid,
 {
     if (app_qpps_env->conhdl == param->conhdl && param->status == PRF_ERR_OK)
     {
-        // Allow new notify
+				// Allow new notify
         app_qpps_env->char_status |= (1 << param->char_index);
 
         // Send next group data until current data have been sent
-        if (get_bit_num(app_qpps_env->char_status) == (app_qpps_env->tx_char_num - 1))
+        if (get_bit_num(app_qpps_env->char_status) == (app_qpps_env->tx_char_num))
         {
-            app_test_send_data(app_qpps_env->tx_char_num - 1);
+            app_test_send_data(app_qpps_env->tx_char_num);
         }
     }
     else
@@ -205,7 +205,7 @@ int app_qpps_cfg_indntf_ind_handler(ke_msg_id_t const msgid,
         {
             app_qpps_env->features |= (QPPS_VALUE_NTF_CFG << param->char_index);
             // App send data if all of characteristic have been configured
-            if (get_bit_num(app_qpps_env->features) == app_qpps_env->tx_char_num)
+            if (get_bit_num(app_qpps_env->features) == (app_qpps_env->tx_char_num + 1))
             {
                 app_qpps_env->char_status = app_qpps_env->features;
                 app_test_send_data(app_qpps_env->tx_char_num - 1);
@@ -263,7 +263,7 @@ static void app_test_send_data(uint8_t max)
 {
     uint8_t cnt;
 
-    for (cnt = 0; (max != 0) && cnt < app_qpps_env->tx_char_num; cnt++)
+    for (cnt = 0; (max != 0) && cnt < (app_qpps_env->tx_char_num + 1); cnt++)
     {
         if ((app_qpps_env->char_status >> cnt) & QPPS_VALUE_NTF_CFG)
         {

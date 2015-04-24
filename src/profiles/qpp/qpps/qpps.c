@@ -56,16 +56,27 @@ const struct atts_desc_ext qpps_att_db[QPPS_IDX_NB] =
     [QPPS_IDX_RX_DATA_VAL]         =   {{ATT_UUID_128_LEN, (uint8_t *)QPPS_RX_CHAR_UUID}, PERM(WR, ENABLE), QPP_DATA_MAX_LEN,
                                          0, NULL},
     // User Descriptor
-    [QPPS_IDX_RX_DATA_USER_DESP]   =   {{ATT_UUID_16_LEN, (uint8_t *)"\x01\x29"}, PERM(RD, ENABLE), sizeof("1.2"),
-                                         sizeof("1.2"), (uint8_t *)"1.2"},
+    [QPPS_IDX_RX_DATA_USER_DESP]   =   {{ATT_UUID_16_LEN, (uint8_t *)"\x01\x29"}, PERM(RD, ENABLE), sizeof("Receice"),
+                                         sizeof("Receice"), (uint8_t *)"Receice"},
 
     // Tx data to client with these Characters
-
+    // Characteristic Declaration
+    [QPPS_IDX_VAL_CHAR_F]             =   {{ATT_UUID_16_LEN, (uint8_t *)"\x03\x28"}, PERM(RD, ENABLE), sizeof(qpps_value_char_f),
+                                         sizeof(qpps_value_char_f), (uint8_t *)&qpps_value_char_f},
+    // Characteristic Value
+    [QPPS_IDX_VAL_F]                  =   {{ATT_UUID_128_LEN, (uint8_t *)QPPS_FIRST_TX_CHAR_UUID}, PERM(NTF, ENABLE), QPP_DATA_MAX_LEN,
+                                         0, NULL},
+    // Client Characteristic Configuration Descriptor
+    [QPPS_IDX_VAL_USER_DESP_F]          =   {{ATT_UUID_16_LEN, (uint8_t *)"\x01\x29"}, PERM(RD, ENABLE), sizeof("Send"),
+                                         sizeof("Send"), (uint8_t *)"Send"},
+    // Client Characteristic Configuration Descriptor
+    [QPPS_IDX_VAL_NTF_CFG_F]          =   {{ATT_UUID_16_LEN, (uint8_t *)"\x02\x29"}, PERM(RD, ENABLE)|PERM(WR, ENABLE), sizeof(uint16_t),
+                                         0, NULL},		
     // Characteristic Declaration
     [QPPS_IDX_VAL_CHAR]             =   {{ATT_UUID_16_LEN, (uint8_t *)"\x03\x28"}, PERM(RD, ENABLE), sizeof(qpps_value_char),
                                          sizeof(qpps_value_char), (uint8_t *)&qpps_value_char},
     // Characteristic Value
-    [QPPS_IDX_VAL]                  =   {{ATT_UUID_128_LEN, (uint8_t *)QPPS_FIRST_TX_CHAR_UUID}, PERM(NTF, ENABLE), QPP_DATA_MAX_LEN,
+    [QPPS_IDX_VAL]                  =   {{ATT_UUID_128_LEN, (uint8_t *)QPPS_SECOND_TX_CHAR_UUID}, PERM(NTF, ENABLE), QPP_DATA_MAX_LEN,
                                          0, NULL},
     // Client Characteristic Configuration Descriptor
     [QPPS_IDX_VAL_NTF_CFG]          =   {{ATT_UUID_16_LEN, (uint8_t *)"\x02\x29"}, PERM(RD, ENABLE)|PERM(WR, ENABLE), sizeof(uint16_t),
@@ -82,8 +93,11 @@ uint8_t qpps_svc[ATT_UUID_128_LEN] = QPP_SVC_PRIVATE_UUID;
 /// Server Service - Server value Characteristic
 const struct atts_char128_desc qpps_value_char = ATTS_CHAR128(ATT_CHAR_PROP_NTF,
                                                                0,
+                                                        QPPS_SECOND_TX_CHAR_UUID);
+/// Server Service - Server value Characteristic
+const struct atts_char128_desc qpps_value_char_f = ATTS_CHAR128(ATT_CHAR_PROP_NTF,
+                                                               0,
                                                         QPPS_FIRST_TX_CHAR_UUID);
-
 /// RX data characteristic
 const struct atts_char128_desc qpps_char_rx_data = ATTS_CHAR128(ATT_CHAR_PROP_WR | ATT_CHAR_PROP_WR_NO_RESP,
                                                           0,

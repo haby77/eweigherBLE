@@ -25,6 +25,7 @@
  ****************************************************************************************
  */
 #include "app_config.h"
+#include "app_env.h"
 
 #if (BLE_QPP_SERVER)
 #include "gap.h"
@@ -80,13 +81,13 @@
 
 uint8_t *qpp_uuid_list[] = 
 {
-    (uint8_t *)"\x01\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4",
     (uint8_t *)"\x02\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4",
     (uint8_t *)"\x03\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4",
     (uint8_t *)"\x04\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4",
     (uint8_t *)"\x05\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4",
     (uint8_t *)"\x06\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4",
     (uint8_t *)"\x07\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4",
+    (uint8_t *)"\x08\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4",
 };
 
 static int qpps_create_db_req_handler(ke_msg_id_t const msgid,
@@ -98,7 +99,7 @@ static int qpps_create_db_req_handler(ke_msg_id_t const msgid,
     uint64_t cfg_flag = QPPS_MANDATORY_MASK;
     //Database Creation Status
     uint8_t status;
-    uint8_t idx_nb = 4;
+    uint8_t idx_nb = 4+4;
     uint8_t tx_char_num = param->tx_char_num;
     struct atts_desc_ext *qpps_db = NULL;
     struct atts_char128_desc *char_desc_def = NULL;
@@ -121,7 +122,7 @@ static int qpps_create_db_req_handler(ke_msg_id_t const msgid,
         {
             struct atts_char128_desc value_char = ATTS_CHAR128(ATT_CHAR_PROP_NTF,
                                                                 0,
-                                                            QPPS_FIRST_TX_CHAR_UUID);
+                                                            QPPS_SECOND_TX_CHAR_UUID);
             
             value_char.attr_type[0] += i;
             char_desc_def[i] = value_char;
@@ -198,33 +199,53 @@ static int qpps_enable_req_handler(ke_msg_id_t const msgid,
     // If this connection is a not configuration one, apply config saved by app
     if(param->con_type == PRF_CON_NORMAL)
     {
-		qpps_env.features = param->ntf_en;
-		for (uint8_t i = 0; i < qpps_env.ntf_char_num; i++)
-		{
-			//Set Val NTF Configuration in DB
-  			if (QPPS_IS_SUPPORTED(i, QPPS_VALUE_NTF_CFG))
-			{
-		        value = QPPS_VALUE_NTF_CFG;
-				attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG + i*3, sizeof(uint16_t),
-									(uint8_t *)&value);
-		    }
-            else
-            {
-                value = 0;
-				attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG + i*3, sizeof(uint16_t),
-									(uint8_t *)&value);
-            }
-		}
+				qpps_env.features = param->ntf_en;
+				for (uint8_t i = 0; i < qpps_env.ntf_char_num; i++)
+				{
+					//Set Val NTF Configuration in DB
+						if (QPPS_IS_SUPPORTED(i, QPPS_VALUE_NTF_CFG))
+						{
+								value = QPPS_VALUE_NTF_CFG;
+								if (i == 0)
+								{
+										attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG_F, sizeof(uint16_t),
+															(uint8_t *)&value);
+								}
+								else
+								{
+										attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG + (i - 1)*3, sizeof(uint16_t),
+															(uint8_t *)&value);
+								}	
+						}
+						else
+						{
+								value = 0;
+								if (i == 0)
+								{
+										attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG_F, sizeof(uint16_t),
+															(uint8_t *)&value);
+								}
+								else
+								{
+										attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG + (i - 1)*3, sizeof(uint16_t),
+															(uint8_t *)&value);
+								}
+						}
+				}
     }
-	else
-	{
-		for (uint8_t i = 0; i < qpps_env.ntf_char_num; i++)
+		else
 		{
-			//Set Val NTF Configuration in DB
-			attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG + i*3, sizeof(uint16_t),
-								 (uint8_t *)&value);
+			for (uint8_t i = 0; i < qpps_env.ntf_char_num; i++)
+			{
+				//Set Val NTF Configuration in DB
+				if (i == 0)
+						attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG + (i  - 1)*3, sizeof(uint16_t),
+											 (uint8_t *)&value);
+				else	
+						attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG + (i  - 1)*3, sizeof(uint16_t),
+											 (uint8_t *)&value);
+			}
 		}
-	}
 
     // Enable Service + Set Security Level
     attsdb_svc_set_permission(qpps_env.shdl, param->sec_lvl);
@@ -258,14 +279,21 @@ static int qpps_data_send_req_handler(ke_msg_id_t const msgid,
         if(QPPS_IS_SUPPORTED(param->index, QPPS_VALUE_NTF_CFG))
         {
             //Update value in DB
-            attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL + param->index * 3,
+			if ( param->index == 0)
+					attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL_F,
+                                 param->length, (void *)param->data);
+			else	
+					attsdb_att_set_value(qpps_env.shdl + QPPS_IDX_VAL + (param->index - 1) * 3,
                                  param->length, (void *)param->data);
 
             //send notification through GATT
             struct gatt_notify_req * ntf = KE_MSG_ALLOC(GATT_NOTIFY_REQ, TASK_GATT,
                                                         TASK_QPPS, gatt_notify_req);
             ntf->conhdl  = qpps_env.conhdl;
-            ntf->charhdl = qpps_env.shdl + QPPS_IDX_VAL + param->index * 3;
+						if ( param->index == 0)
+							ntf->charhdl = qpps_env.shdl + QPPS_IDX_VAL_F;
+						else
+							ntf->charhdl = qpps_env.shdl + QPPS_IDX_VAL + (param->index - 1) * 3;
 
             ke_msg_send(ntf);
         }
@@ -311,14 +339,21 @@ static int gatt_write_cmd_ind_handler(ke_msg_id_t const msgid,
     if (param->conhdl == qpps_env.conhdl)
     {
         // Client Char. Configuration
-		uint8_t char_index = param->handle - (qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG);
-        if ((param->handle > (qpps_env.shdl + QPPS_IDX_VAL_CHAR)) && ((char_index % 3) == 0))
+				uint8_t char_index;
+				if ((param->handle - (qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG_F))== 0)
+				{
+						char_index = 0;
+				}
+				else
+						char_index = param->handle - (qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG) + 3;
+        if (((param->handle > (qpps_env.shdl + QPPS_IDX_VAL_CHAR)) || ((param->handle - (qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG_F))== 0)) 
+					&& ((char_index % 3) == 0))
         {
             uint16_t value = 0x0000;
 
             //Extract value before check
             memcpy(&value, &(param->value), sizeof(uint16_t));
-
+							
             if ((value == PRF_CLI_STOP_NTFIND) || (value == PRF_CLI_START_NTF))
             {
                 if (value == PRF_CLI_STOP_NTFIND)
@@ -422,7 +457,10 @@ static int gatt_notify_cmp_evt_handler(ke_msg_id_t const msgid,
                                                    TASK_QPPS, qpps_data_send_cfm);
 
     cfm->conhdl = qpps_env.conhdl;
-    cfm->char_index = (param->handle - (qpps_env.shdl + QPPS_IDX_VAL)) / 3;
+		if ((param->handle - (qpps_env.shdl + QPPS_IDX_VAL_F)) == 0)
+			cfm->char_index = 0;
+		else
+			cfm->char_index = (param->handle - (qpps_env.shdl + QPPS_IDX_VAL)) / 3 + 1;
     cfm->status = param->status;
 
     ke_msg_send(cfm);
