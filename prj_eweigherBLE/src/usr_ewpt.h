@@ -13,8 +13,10 @@
 #define EVENT_COM_WAKEUP_ID			1
 
 #define EVENT_UART_TX_ID 3
-#define EVENT_UART_RX_FRAME_ID 4
+#define EVENT_UART_RX_FRAME_ID 6
 #define EVENT_UART_RX_TIMEOUT_ID 5
+#define	EVENT_SCALE_POWER_ON_ID		7
+#define	EVENT_SCALE_POWER_OFF_ID		8
 
 
 enum com_st
@@ -36,6 +38,20 @@ enum com_error_st
 		no_error
 };
 
+enum scale_st
+{
+		power_on = 0,
+		power_down,
+		work_busy
+};
+
+typedef struct user_data
+{
+		uint8_t update_flag;
+		uint8_t len;
+		uint8_t data[10];
+} usr_data;
+
 struct com_env_tag
 {
     uint8_t com_state ;
@@ -50,6 +66,9 @@ struct com_env_tag
     ///UART RX parameter 
     uint8_t com_rx_len;
     uint8_t com_rx_buf[QPPS_VAL_CHAR_NUM*QPP_DATA_MAX_LEN];
+		uint8_t scale_state;
+		uint8_t result_st;
+		usr_data scale_user_data;
 
 };
 
@@ -59,8 +78,6 @@ extern void com_pdu_send(uint8_t len, uint8_t *par);
 extern void app_event_com_wakeup_handler(void);
 extern void com_init(void);
 extern void com_tx_done(void);
-extern void com_event_uart_rx_frame_handler(void);
-extern void com_event_uart_rx_timeout_handler(void);
 extern void com_wakeup_cb(void);
 extern int app_com_scale_wakeup_timer_handler(ke_msg_id_t const msgid, void const *param,
                                ke_task_id_t const dest_id, ke_task_id_t const src_id);
@@ -68,10 +85,17 @@ extern int app_com_uart_rx_done_ind_handler(ke_msg_id_t const msgid, void const 
                                ke_task_id_t const dest_id, ke_task_id_t const src_id);
 extern int app_com_rx_timeout_handler(ke_msg_id_t const msgid, void const *param,
                                ke_task_id_t const dest_id, ke_task_id_t const src_id);
+extern int app_scale_power_on_timer_handler(ke_msg_id_t const msgid, void const *param,
+                               ke_task_id_t const dest_id, ke_task_id_t const src_id);
+extern int app_scale_power_off_timer_handler(ke_msg_id_t const msgid, void const *param,
+                               ke_task_id_t const dest_id, ke_task_id_t const src_id);
 extern void	com_uart_rx_start(void);
 extern void com_event_uart_rx_frame_handler(void);
 extern void com_event_uart_rx_timeout_handler(void);
+extern void scale_event_power_on_handler(void);
+extern void scale_event_power_off_handler(void);
 void com_uart_rx(void);
+extern void	wakeup_scale(void);
 
 #endif
 /// end of usr_ewpt.h

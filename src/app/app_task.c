@@ -610,6 +610,8 @@ const struct ke_msg_handler app_default_state[] =
 		{APP_COM_SCALE_WAKEUP_TIMER,              (ke_msg_func_t) app_com_scale_wakeup_timer_handler},
 		{APP_COM_UART_RX_DONE_IND,              (ke_msg_func_t) app_com_uart_rx_done_ind_handler},
     {APP_COM_RX_TIMEOUT_TIMER,              (ke_msg_func_t) app_com_rx_timeout_handler},
+		{APP_SCALE_POWER_ON_TIMER,							(ke_msg_func_t) app_scale_power_on_timer_handler},
+		{APP_SCALE_POWER_OFF_TIMER,							(ke_msg_func_t) app_scale_power_off_timer_handler},
 #endif
     
 #if BLE_OTA_SERVER 

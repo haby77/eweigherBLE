@@ -33,6 +33,9 @@ void com_init(void)
 
     //for com uart tx  
     com_env.tx_state = COM_UART_TX_IDLE;	//initialize tx state
+		com_env.scale_state = power_down;
+		com_env.result_st = 0x0;
+		com_env.scale_user_data.update_flag = 1;
     co_list_init(&com_env.queue_tx);			//init TX queue
 
 #if LED_DEBUG	
@@ -45,6 +48,10 @@ void com_init(void)
     if(KE_EVENT_OK != ke_evt_callback_set(EVENT_UART_RX_FRAME_ID, com_event_uart_rx_frame_handler))
     ASSERT_ERR(0);
     if(KE_EVENT_OK != ke_evt_callback_set(EVENT_UART_RX_TIMEOUT_ID, com_event_uart_rx_timeout_handler))
+    ASSERT_ERR(0);
+    if(KE_EVENT_OK != ke_evt_callback_set(EVENT_SCALE_POWER_ON_ID, scale_event_power_on_handler))
+    ASSERT_ERR(0);
+    if(KE_EVENT_OK != ke_evt_callback_set(EVENT_SCALE_POWER_OFF_ID, scale_event_power_off_handler))
     ASSERT_ERR(0);
 
 }
@@ -101,7 +108,7 @@ void	app_com_wakeup_process(void)
 			}break;
 			case COM_CONN_EMPTY:
 			{
-				//wakeup_scale();
+				wakeup_scale();
 				//com_uart_rx_start();
 				QPRINTF("wake up!\r\n");
 			}break;
@@ -151,20 +158,158 @@ void com_uart_rx(void)
 		//QPRINTF("Here!\r\n");
 		com_env.com_rx_len++;
 		com_env.com_state = COM_CONN_FULL;
-	  if(com_env.com_rx_len==QPPS_VAL_CHAR_NUM*QPP_DATA_MAX_LEN)  //receive data buf is full, should sent them to ble
-    {
-				ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
-			
-			///leo test
-				com_uart_rx_start();
-				com_env.com_state = COM_CONN_EMPTY;
-			///leo test end
-    }
-    else
-    {
-					ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
-        	uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
-    }
+		if (com_env.com_rx_len > 1 && com_env.com_rx_len < 40)
+		{
+				if ((com_env.com_rx_len == 6) && (com_env.com_rx_buf[0] == 0x02) && (com_env.com_rx_buf[1] == 0x6f) && (com_env.com_rx_buf[2] == 0x66) && (com_env.com_rx_buf[3] == 0x66) && (com_env.com_rx_buf[4] == 0x03) && (com_env.com_rx_buf[com_env.com_rx_len - 1] == 0xE0))
+				{
+							com_env.scale_state = power_down;
+							com_env.result_st = 0x0;
+							QPRINTF("power off!\r\n");			
+				}
+				else
+				{
+						if (com_env.com_rx_buf[com_env.com_rx_len - 1] == 0x03)
+						{
+								if(com_env.com_rx_len == 4 && com_env.com_rx_buf[1] == 0x6f && com_env.com_rx_buf[2] == 0x6e)
+								{
+									com_env.scale_state = power_on;
+									//ke_timer_set(APP_SCALE_POWER_ON_TIMER,TASK_APP,2);
+									QPRINTF("power on!\r\n");
+								}
+								if(com_env.com_rx_len == 5 && com_env.com_rx_buf[1] == 0x6f 
+									&& com_env.com_rx_buf[2] == 0x66 && com_env.com_rx_buf[3] == 0x66)
+								{
+										ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
+										uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);	
+								}
+								if(com_env.com_rx_buf[1] == 0x40)
+								{
+										if (com_env.com_rx_len == 36)
+										{
+												uint8_t i,CRC_COM = 0;
+												for (i = 0;i<(com_env.com_rx_len-2);i++)
+															CRC_COM ^= com_env.com_rx_buf[i];
+												if (CRC_COM == com_env.com_rx_buf[com_env.com_rx_len-2])
+												{
+														QPRINTF("\r\ndata correct!\r\n");
+														ke_evt_clear(1UL<<EVENT_UART_RX_TIMEOUT_ID);
+														QPRINTF("com_env.result_st %d\r\n",com_env.result_st);
+														ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
+														uint8_t temp_array[10];
+														temp_array[0] = 0x02;
+														temp_array[1] = 0x00;
+														temp_array[2] = 0x30;
+														temp_array[3] = 0x31;
+														temp_array[4] = 0x37;
+														temp_array[5] = 0x30;
+														temp_array[6] = 0x33;
+														temp_array[7] = 0x30;
+														temp_array[8] = temp_array[0]^temp_array[1]^temp_array[2]^temp_array[3]^temp_array[4]^temp_array[5]^temp_array[6]^temp_array[7];
+														temp_array[9] = 0x03;
+														com_pdu_send(10,&(temp_array[0]));
+												}
+												else
+												{
+														QPRINTF("CRC verify error!\r\n");
+														if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
+																com_uart_rx_start();
+												}
+										}
+										else
+										{
+												ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
+												uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);								
+										}
+										
+								}
+								if (com_env.com_rx_buf[1] == 0x53)
+								{
+										if (com_env.com_rx_len == 11)
+										{
+												uint8_t i,CRC_COM = 0;
+												for (i = 0;i<(com_env.com_rx_len-2);i++)
+															CRC_COM ^= com_env.com_rx_buf[i];
+												if (CRC_COM == com_env.com_rx_buf[com_env.com_rx_len-2])
+												{
+														QPRINTF("\r\ndata correct!\r\n");
+														//app_qpps_data_send(app_qpps_env->conhdl,0,(com_env.com_rx_len-1),com_env.com_rx_buf);
+														com_env.scale_user_data.update_flag = 1;
+														ke_evt_clear(1UL<<EVENT_UART_RX_TIMEOUT_ID);
+														ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
+												}
+												else
+												{
+														QPRINTF("CRC verify error!\r\n");
+														uint8_t temp_error[] = "set usr_data error!";
+														app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(temp_error),temp_error);
+														if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
+																com_uart_rx_start();
+												}
+										}
+										else
+										{
+												ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
+												uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);								
+										}
+								}
+						}
+						else
+						{							
+								//QPRINTF("xor_sum error!\r\n");
+								if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
+								{
+										ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
+										uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
+								}
+						}
+					}
+//				else
+//				{
+//						QPRINTF("CRC verify error!\r\n");
+//						if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
+//						com_uart_rx_start();
+//				}
+		}
+		else
+		{
+				if (com_env.com_rx_len == 1)
+				{
+						if(com_env.com_rx_buf[0] == 0x02)
+						{
+								if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
+								{
+										ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
+										uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
+								}
+						}
+						else
+						{
+								QPRINTF("first byte error! 0x%X\r\n",com_env.com_rx_buf[0]);
+								if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
+									com_uart_rx_start();
+						}
+				}
+				else
+				{
+						QPRINTF("length error!\r\n");
+						if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
+							com_uart_rx_start();
+				}
+		}
+//	  if(com_env.com_rx_len==(QPPS_VAL_CHAR_NUM + 1)*QPP_DATA_MAX_LEN)  //receive data buf is full, should sent them to ble
+//    {
+//				ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
+//				QPRINTF("full!\r\n");
+//			///leo test
+//				com_uart_rx_start();
+//				com_env.com_state = COM_CONN_EMPTY;
+//			///leo test end
+//    }
+//    else
+//    {
+//					ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
+//        	uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
+//    }
 }
 
 void com_uart_write(struct ke_msg *msg)
@@ -173,7 +318,7 @@ void com_uart_write(struct ke_msg *msg)
     com_env.tx_state = COM_UART_TX_ONGOING;
 		
     uart_write(EWPT_COM_UART, ((uint8_t *)&msg->param), msg->param_len, app_event_com_tx_handler);
-		//delay(0x1fff);
+		delay(0x1fff);
 }
 
 
@@ -236,6 +381,7 @@ void com_tx_done(void)
 
 void com_event_uart_rx_frame_handler(void)
 {
+	QPRINTF("com_event_uart_rx_frame_handler\r\n");
 	struct app_uart_data_ind *com_data = ke_msg_alloc(APP_COM_UART_RX_DONE_IND,
 															 TASK_APP,
 															 TASK_APP,
@@ -244,8 +390,25 @@ void com_event_uart_rx_frame_handler(void)
 	memcpy(com_data->data,com_env.com_rx_buf,com_env.com_rx_len);
 	for (uint8_t i=0;i<com_data->len;i++)
 			QPRINTF("%X ",com_data->data[i]);
-	ke_msg_send(com_data);
-
+	QPRINTF("\r\n");
+		if ((com_data->len != 36) && (com_env.result_st == 0x0))
+		{
+			ke_msg_send(com_data);
+		}
+		else
+		{
+			if ((com_data->len == 36) && (com_env.result_st == 0x0))
+			{			
+					com_env.result_st = 0x1;
+					ke_msg_send(com_data);
+			}
+			else
+			{
+					QPRINTF("len:%d ,com_env.result_st:%d\r\n",com_data->len,com_env.result_st);
+					com_uart_rx_start();
+					com_env.com_state = COM_CONN_EMPTY;
+			}
+		}
 	ke_timer_clear(APP_COM_RX_TIMEOUT_TIMER, TASK_APP);
 
 	ke_evt_clear(1UL << EVENT_UART_RX_FRAME_ID);
@@ -258,9 +421,20 @@ void com_event_uart_rx_timeout_handler(void)
 	ke_evt_clear(1UL << EVENT_UART_RX_TIMEOUT_ID);
 }
 
+void scale_event_power_on_handler(void)
+{
+		
+}
+
+void scale_event_power_off_handler(void)
+{
+
+}
+
 int app_com_uart_rx_done_ind_handler(ke_msg_id_t const msgid, void const *param,
                                ke_task_id_t const dest_id, ke_task_id_t const src_id)
 {
+		
 		switch(msgid)
     {
         case APP_COM_UART_RX_DONE_IND:
@@ -275,27 +449,31 @@ int app_com_uart_rx_done_ind_handler(ke_msg_id_t const msgid, void const *param,
 						///leo test end
             
             if(frame->len) //have data
-            {    
+            { 
                 //calculate page num;
+								 //com_env.result_st = 0x1;
                  uint8_t pagket_res = frame->len%QPP_DATA_MAX_LEN;
                  uint8_t pagket_num;
                  if(pagket_res)
                  pagket_num = frame->len/QPP_DATA_MAX_LEN + 1;
                  else
                  pagket_num = frame->len/QPP_DATA_MAX_LEN;
-                 
+								                  
                  uint8_t cnt=0,sent_pagket=0; 
 
-                for (cnt = 0; (sent_pagket<pagket_num) && cnt < QPPS_VAL_CHAR_NUM; cnt++)
+                for (cnt = 0; (sent_pagket<pagket_num) && cnt < (QPPS_VAL_CHAR_NUM + 1); cnt++)
                 {
                      if ((app_qpps_env->char_status >> cnt) & QPPS_VALUE_NTF_CFG)
                      {
 												app_qpps_env->char_status &= ~(QPPS_VALUE_NTF_CFG << cnt);
 											 
-                         if((pagket_res)&&(pagket_num-sent_pagket==1))
-                         app_qpps_data_send(app_qpps_env->conhdl, cnt, pagket_res, (frame->data+sent_pagket*20));
+                         if((pagket_res)&&(pagket_num-sent_pagket==1)/* && (com_env.result_st == 0x0)*/)
+														app_qpps_data_send(app_qpps_env->conhdl, cnt, pagket_res, (frame->data+sent_pagket*20));
                          else
-                         app_qpps_data_send(app_qpps_env->conhdl, cnt, QPP_DATA_MAX_LEN, (frame->data+sent_pagket*20)); 
+												 {
+														//if (com_env.result_st == 0x00)
+														app_qpps_data_send(app_qpps_env->conhdl, cnt, QPP_DATA_MAX_LEN, (frame->data+sent_pagket*20)); 
+												 }
                          
                          sent_pagket++;
                      }
@@ -319,8 +497,40 @@ int app_com_rx_timeout_handler(ke_msg_id_t const msgid, void const *param,
     com_data->len=com_env.com_rx_len;
     memcpy(com_data->data,com_env.com_rx_buf,com_env.com_rx_len);
 		for (uint8_t i=0;i<com_data->len;i++)
-				QPRINTF("%X ",com_data->data[i]);
-    ke_msg_send(com_data);
+				QPRINTF("0x%2X ",com_data->data[i]);
+		QPRINTF("\r\n");
+		if ((com_data->len != 36) && (com_env.result_st == 0x0))
+		{
+			ke_msg_send(com_data);
+		}
+		else
+		{
+			if ((com_data->len == 36) && (com_env.result_st == 0x0))
+			{			
+					ke_msg_send(com_data);
+					com_env.result_st = 0x1;
+			}
+			else
+			{
+					QPRINTF("len:%d ,com_env.result_st:%d\r\n",com_data->len,com_env.result_st);
+					com_uart_rx_start();
+					com_env.com_state = COM_CONN_EMPTY;
+			}
+		}
+    
+    return (KE_MSG_CONSUMED);
+}
+
+int app_scale_power_on_timer_handler(ke_msg_id_t const msgid, void const *param,
+                               ke_task_id_t const dest_id, ke_task_id_t const src_id)
+{
+    
+    return (KE_MSG_CONSUMED);
+}
+
+int app_scale_power_off_timer_handler(ke_msg_id_t const msgid, void const *param,
+                               ke_task_id_t const dest_id, ke_task_id_t const src_id)
+{
     
     return (KE_MSG_CONSUMED);
 }

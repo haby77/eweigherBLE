@@ -60,7 +60,6 @@
 
 #define APP_HEART_RATE_MEASUREMENT_TO     1400 // 14s
 #define APP_HRPS_ENERGY_EXPENDED_STEP     50
-
 //#define EVENT_BUTTON1_PRESS_ID            0
 
 ///IOS Connection Parameter
@@ -68,6 +67,11 @@
 #define IOS_CONN_INTV_MIN                              0x0008
 #define IOS_SLAVE_LATENCY                              0x0000
 #define IOS_STO_MULT                                   0x012c
+
+enum	scale_error
+{
+		ERROR_SCALE_POWER_DOWN = 0x0,
+};
 
 /*
  * GLOBAL VARIABLE DEFINITIONS
@@ -237,28 +241,40 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 				case QPPS_DAVA_VAL_IND:
 #if		(BLE_EWPT_SERVER)							
 							{
-									//获取并且打印传入的数据
-									struct qpps_data_val_ind* par = (struct qpps_data_val_ind*)param;
-									QPRINTF("Receive data : ");
-									for (uint8_t i=0;i<par->length;i++)
-											QPRINTF("%02X ",par->data[i]);
-									QPRINTF("\r\n");
-								
-								  //02 53 30 31 37 30 33 30 54 03
-									if ((par->data[0] == 0x02) && (par->data[1] == 0x53) && (par->data[par->length-1] == 0x03))
+									wakeup_scale();
+									if (com_env.scale_state == power_on)
 									{
-											uint8_t i,xor_sum = 0;
-											for (i = 0;i < par->length-2;i++)
-												xor_sum ^= par->data[i];
-											if (xor_sum == par->data[par->length - 2])
+											struct qpps_data_val_ind* par = (struct qpps_data_val_ind*)param;
+											for (uint8_t i=0;i<par->length;i++)
+													QPRINTF("%02X ",par->data[i]);
+											QPRINTF("\r\n");
+											if ((par->data[0] == 0x02) && (par->data[1] == 0x53) && (par->data[par->length-1] == 0x03))
 											{
-													com_pdu_send(par->length,&(par->data[0]));
-													QPRINTF("\r\n\r\n------->Scale Ready!\r\n\r\n");
+													uint8_t i,xor_sum = 0;
+													for (i = 0;i < par->length-2;i++)
+														xor_sum ^= par->data[i];
+													if (xor_sum == par->data[par->length - 2])
+													{
+															memcpy(com_env.scale_user_data.data,par->data,par->length);
+															QPRINTF("user_data:");
+															for (uint8_t i=0;i<par->length;i++)
+																	QPRINTF("0x%2X ",com_env.scale_user_data.data[i]);
+															QPRINTF("\r\n");
+															com_pdu_send(par->length,&(par->data[0]));
+															com_env.scale_user_data.update_flag = 0;
+															QPRINTF("\r\n\r\n------->ready!\r\n\r\n");
+															//uart_write(QN_UART1, &(par->data[0]),par->length,app_event_pt_tx_handler );
+													}
+													else
+													{
+														QPRINTF("xor_sum :0x%02X  error!\r\n",xor_sum);
+													}
 											}
-										  else
-											{
-												QPRINTF("xor_sum :0x%02X  error!\r\n",xor_sum);
-											}
+									}
+									else
+									{
+											uint8_t error[] =  "B";
+											app_qpps_data_send(app_qpps_env->conhdl,0,1,error);
 									}
 							}
 #endif
@@ -294,6 +310,7 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 										com_uart_rx_start();
 										com_env.com_state = COM_CONN_EMPTY;
 								}
+								//if (((struct qpps_data_send_cfm*)param)->)
 								//ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
 						}
 						break;
