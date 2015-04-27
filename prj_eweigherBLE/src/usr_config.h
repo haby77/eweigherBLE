@@ -34,7 +34,7 @@
 #endif
 
 /// Local name
-#define CFG_LOCAL_NAME   "FireBLE QPPS"
+#define CFG_LOCAL_NAME   "FireBLE Eweight"
 
 /// Evaluation board indication
  // The GPIOs used for FireBLE's LED and button are different from FireBLE.
@@ -84,7 +84,7 @@
 //#define CFG_HCI_SPI_WR_CTRL_PIN         GPIO_P26
 
 /// Debug information output interface
-#define CFG_DEBUG_UART  QN_UART0
+#define CFG_DEBUG_UART  QN_UART1
 
 // Using standard lib printf
 #define CFG_STD_PRINTF
@@ -235,6 +235,11 @@
 /// OTA Server Role
  #define CFG_PRF_OTAS
  #define CFG_TASK_OTAS   TASK_PRF7
+ 
+/// eweigherBLE configure
+ #define CFG_FIREBLE_EWPT
 
+/// UART Demo Menu
+// #define CFG_DEMO_MENU
 #endif
 

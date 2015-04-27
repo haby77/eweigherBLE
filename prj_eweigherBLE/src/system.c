@@ -27,6 +27,10 @@
 #include "lib.h"
 #include "usr_design.h"
 
+#if	(BLE_EWPT_SERVER)
+#include "usr_ewpt.h"
+#endif
+
 /**
  ****************************************************************************************
  * @brief  GPIO functionn configuration.
@@ -51,8 +55,8 @@ static void SystemIOCfg(void)
                              | P06_SW_DAT_PIN_CTRL
 #endif
 
-                             | P10_GPIO_8_PIN_CTRL
-                             | P11_GPIO_9_PIN_CTRL
+                             | P10_UART1_RXD_PIN_CTRL
+                             | P11_UART1_TXD_PIN_CTRL
                              | P12_GPIO_10_PIN_CTRL
                              | P13_GPIO_11_PIN_CTRL
                              | P14_GPIO_12_PIN_CTRL
@@ -181,6 +185,12 @@ void SystemInit(void)
     gpio_set_direction_field(CFG_HCI_SPI_WR_CTRL_PIN, (uint32_t)GPIO_OUTPUT);
     gpio_write_pin(CFG_HCI_SPI_WR_CTRL_PIN, GPIO_HIGH);
 #endif
+#endif
+
+#if	(BLE_EWPT_SERVER)
+    uart_init(EWPT_COM_UART, USARTx_CLK(0), UART_9600);
+    uart_tx_enable(EWPT_COM_UART, MASK_ENABLE);
+    uart_rx_enable(EWPT_COM_UART, MASK_ENABLE);
 #endif
 
     // Button

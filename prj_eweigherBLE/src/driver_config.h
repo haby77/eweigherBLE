@@ -102,10 +102,10 @@
 #define CONFIG_UART0_TX_ENABLE_INTERRUPT                TRUE        /*!< Enable/Disable(Polling) UART0 TX Interrupt */
 #define CONFIG_UART0_RX_ENABLE_INTERRUPT                TRUE        /*!< Enable/Disable(Polling) UART0 RX Interrupt */
 #define CONFIG_ENABLE_DRIVER_UART1                      TRUE        /*!< Enable/Disable UART Driver */
-#define CONFIG_UART1_TX_DEFAULT_IRQHANDLER              FALSE       /*!< Enable/Disable UART1 TX Default IRQ Handler */
-#define CONFIG_UART1_RX_DEFAULT_IRQHANDLER              FALSE       /*!< Enable/Disable UART1 RX Default IRQ Handler */
-#define CONFIG_UART1_TX_ENABLE_INTERRUPT                FALSE       /*!< Enable/Disable(Polling) UART1 TX Interrupt */
-#define CONFIG_UART1_RX_ENABLE_INTERRUPT                FALSE       /*!< Enable/Disable(Polling) UART1 RX Interrupt */
+#define CONFIG_UART1_TX_DEFAULT_IRQHANDLER              TRUE       /*!< Enable/Disable UART1 TX Default IRQ Handler */
+#define CONFIG_UART1_RX_DEFAULT_IRQHANDLER              TRUE       /*!< Enable/Disable UART1 RX Default IRQ Handler */
+#define CONFIG_UART1_TX_ENABLE_INTERRUPT                TRUE       /*!< Enable/Disable(Polling) UART1 TX Interrupt */
+#define CONFIG_UART1_RX_ENABLE_INTERRUPT                TRUE       /*!< Enable/Disable(Polling) UART1 RX Interrupt */
 
 #define CONFIG_ENABLE_DRIVER_SERIAL_FLASH               TRUE        /*!< Enable/Disable Serial Flash Driver */
 

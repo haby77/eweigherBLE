@@ -40,6 +40,10 @@
 #if	 (FB_JOYSTICKS)
 #include "joysticks.h"
 #endif
+
+#if		(BLE_EWPT_SERVER)
+#include "usr_ewpt.h"
+#endif
 /*
  * MACRO DEFINITIONS
  ****************************************************************************************
@@ -57,7 +61,7 @@
 #define APP_HEART_RATE_MEASUREMENT_TO     1400 // 14s
 #define APP_HRPS_ENERGY_EXPENDED_STEP     50
 
-#define EVENT_BUTTON1_PRESS_ID            0
+//#define EVENT_BUTTON1_PRESS_ID            0
 
 ///IOS Connection Parameter
 #define IOS_CONN_INTV_MAX                              0x0010
@@ -209,6 +213,36 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
                 }
             }
             break;
+						
+				case QPPS_DAVA_VAL_IND:
+#if		(BLE_EWPT_SERVER)							
+							{
+									//获取并且打印传入的数据
+									struct qpps_data_val_ind* par = (struct qpps_data_val_ind*)param;
+									QPRINTF("Receive data : ");
+									for (uint8_t i=0;i<par->length;i++)
+											QPRINTF("%02X ",par->data[i]);
+									QPRINTF("\r\n");
+								
+								  //02 53 30 31 37 30 33 30 54 03
+									if ((par->data[0] == 0x02) && (par->data[1] == 0x53) && (par->data[par->length-1] == 0x03))
+									{
+											uint8_t i,xor_sum = 0;
+											for (i = 0;i < par->length-2;i++)
+												xor_sum ^= par->data[i];
+											if (xor_sum == par->data[par->length - 2])
+											{
+													com_pdu_send(par->length,&(par->data[0]));
+													QPRINTF("\r\n\r\n------->Scale Ready!\r\n\r\n");
+											}
+										  else
+											{
+												QPRINTF("xor_sum :0x%02X  error!\r\n",xor_sum);
+											}
+									}
+							}
+#endif
+						break;
 
         case QPPS_DISABLE_IND:
             break;
@@ -301,6 +335,12 @@ void usr_sleep_restore(void)
     uart_init(QN_DEBUG_UART, USARTx_CLK(0), UART_9600);
     uart_tx_enable(QN_DEBUG_UART, MASK_ENABLE);
     uart_rx_enable(QN_DEBUG_UART, MASK_ENABLE);
+#endif
+	
+#if	BLE_EWPT_SERVER
+    uart_init(EWPT_COM_UART, USARTx_CLK(0), UART_9600);
+    uart_tx_enable(EWPT_COM_UART, MASK_ENABLE);
+    uart_rx_enable(EWPT_COM_UART, MASK_ENABLE);
 #endif
 
 #if (defined(QN_ADV_WDT))
@@ -463,7 +503,11 @@ void gpio_interrupt_callback(enum gpio_pin pin)
  */
 void usr_init(void)
 {
-    if(KE_EVENT_OK != ke_evt_callback_set(EVENT_BUTTON1_PRESS_ID, 
+#if	(BLE_EWPT_SERVER)
+		com_init();
+#endif	
+
+		if(KE_EVENT_OK != ke_evt_callback_set(EVENT_BUTTON1_PRESS_ID, 
                                             app_event_button1_press_handler))
     {
         ASSERT_ERR(0);

@@ -667,6 +667,14 @@
         #define BLE_OTA_SERVER      0
         #define OTAS_DB_SIZE        0
     #endif // defined(CFG_PRF_OTAS)
+		
+		///FireBLE EweigherBLE
+    #if defined(CFG_FIREBLE_EWPT)
+        #define BLE_EWPT_SERVER      1
+				#define	EWPT_COM_UART				 QN_UART0
+    #else
+        #define BLE_EWPT_SERVER      0
+    #endif // defined(CFG_FIREBLE_EWPT)
     
     ///ANCS Client Role
     #if defined(CFG_PRF_ANCSC)
