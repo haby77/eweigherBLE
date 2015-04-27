@@ -140,6 +140,10 @@
 #include "app_qpps.h"
 #endif
 
+#if BLE_EWPT_SERVER
+#include "usr_ewpt.h"
+#endif
+
 #if BLE_OTA_SERVER
 #include "otas_task.h"
 #include "app_otas_task.h"

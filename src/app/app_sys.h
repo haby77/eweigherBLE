@@ -20,8 +20,8 @@
  ****************************************************************************************
  */
 
-#if (QN_DEMO_MENU || QN_EACI)
-#if (QN_DEMO_MENU)
+#if (QN_DEMO_MENU || QN_EACI || BLE_EWPT_SERVER)
+#if (QN_DEMO_MENU )
 
 #define QN_UART_RX_LEN      0x10
 

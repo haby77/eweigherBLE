@@ -169,6 +169,7 @@ int app_qpps_data_send_cfm_handler(ke_msg_id_t const msgid,
         {
             //app_test_send_data(app_qpps_env->tx_char_num);
         }
+				app_task_msg_hdl(msgid,param);
     }
     else
     {
@@ -216,6 +217,7 @@ int app_qpps_cfg_indntf_ind_handler(ke_msg_id_t const msgid,
             app_qpps_env->features &= ~(QPPS_VALUE_NTF_CFG << param->char_index);
             app_qpps_env->char_status &= ~(QPPS_VALUE_NTF_CFG << param->char_index);
         }
+				app_task_msg_hdl(msgid,param);
     }
 
     return (KE_MSG_CONSUMED);

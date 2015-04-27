@@ -21,6 +21,10 @@
   #include "joysticks.h"
 #endif
 
+#if	BLE_EWPT_SERVER
+	#include "usr_ewpt.h"
+#endif
+
 #if QN_DEMO_MENU
 #include "app_menu.h"
 #endif
@@ -49,7 +53,7 @@
  ****************************************************************************************
  */
 
-#if (QN_DEMO_MENU || QN_EACI)
+#if (QN_DEMO_MENU || QN_EACI || BLE_EWPT_SERVER)
 /**
  ****************************************************************************************
  * @brief Handles UART data indication.
@@ -164,7 +168,7 @@ const struct ke_msg_handler app_default_state[] =
     {APP_SYS_TIME_CHECK_TIMER,              (ke_msg_func_t) app_sys_time_check_timer_handler},
 #endif
 
-#if (QN_EACI || QN_DEMO_MENU)
+#if (QN_EACI || QN_DEMO_MENU || BLE_EWPT_SERVER)
     {APP_SYS_UART_DATA_IND,                 (ke_msg_func_t) app_uart_data_ind_handler},
 #endif
 
@@ -600,6 +604,12 @@ const struct ke_msg_handler app_default_state[] =
     {QPPS_CFG_INDNTF_IND,               	(ke_msg_func_t) app_qpps_cfg_indntf_ind_handler},
     {QPPS_DAVA_VAL_IND,         	        (ke_msg_func_t) app_qpps_data_ind_handler},
     {QPPS_CREATE_DB_CFM,                	(ke_msg_func_t) app_qpps_create_db_cfm_handler},
+#endif
+		
+#if	BLE_EWPT_SERVER
+		{APP_COM_SCALE_WAKEUP_TIMER,              (ke_msg_func_t) app_com_scale_wakeup_timer_handler},
+		{APP_COM_UART_RX_DONE_IND,              (ke_msg_func_t) app_com_uart_rx_done_ind_handler},
+    {APP_COM_RX_TIMEOUT_TIMER,              (ke_msg_func_t) app_com_rx_timeout_handler},
 #endif
     
 #if BLE_OTA_SERVER 

@@ -94,6 +94,25 @@ struct usr_env_tag usr_env = {LED_ON_DUR_IDLE, LED_OFF_DUR_IDLE};
  ****************************************************************************************
  */
 
+/*
+ ****************************************************************************************
+ * @brief Calculate the number of non-zero bit.
+ *
+ ****************************************************************************************
+ */
+static uint32_t get_bit_num(uint32_t val)
+{
+    uint32_t bit_cnt = 0;
+
+    while (val != 0)
+    {
+        if (val & 0x1)
+            bit_cnt++;
+        val >>= 1;
+    }
+    return bit_cnt;
+}
+
 /**
  ****************************************************************************************
  * @brief   Led1 for BLE status
@@ -182,6 +201,7 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
                     app_env.adv_data, app_set_adv_data(GAP_GEN_DISCOVERABLE),
                     app_env.scanrsp_data, app_set_scan_rsp_data(app_get_local_service_flag()),
                     GAP_ADV_FAST_INTV1, GAP_ADV_FAST_INTV2);
+						gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_HIGH);						
             break;
 
         case GAP_LE_CREATE_CONN_REQ_CMP_EVT:
@@ -248,7 +268,35 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
             break;
 
         case QPPS_CFG_INDNTF_IND:
-            break;
+            				{
+            uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
+            if (bit_num >= QPPS_VAL_CHAR_NUM + 1)  
+            {                
+                QPRINTF("all notify is on!\r\n");
+								gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_LOW);
+								if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
+										com_uart_rx_start();
+								com_env.com_state = COM_CONN_EMPTY;
+            }
+						else
+						{
+								com_env.com_state = COM_CONN_FULL;
+						}
+            
+        }
+				break;
+				
+				case	QPPS_DATA_SEND_CFM	:							
+					{
+								uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
+								if (bit_num >= QPPS_VAL_CHAR_NUM)
+								{
+										com_uart_rx_start();
+										com_env.com_state = COM_CONN_EMPTY;
+								}
+								//ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
+						}
+						break;
 
 #if	(BLE_OTA_SERVER)						
         case OTAS_TRANSIMIT_STATUS_IND:
@@ -481,6 +529,9 @@ void gpio_interrupt_callback(enum gpio_pin pin)
             //Button 1 is used to enter adv mode.
             usr_button1_cb();
             break;
+				
+				case	COM_WAKEUP:
+							com_wakeup_cb();
 
 #if (defined(QN_TEST_CTRL_PIN))
         case QN_TEST_CTRL_PIN:
@@ -520,6 +571,7 @@ void usr_init(void)
 		}
 #endif
 }
+
 
 /// @} USR
 

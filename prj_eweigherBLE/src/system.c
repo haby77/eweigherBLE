@@ -188,6 +188,9 @@ void SystemInit(void)
 #endif
 
 #if	(BLE_EWPT_SERVER)
+		gpio_set_direction(COM_WAKEUP_TRIGGER,GPIO_OUTPUT);
+		gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_HIGH);
+		
     uart_init(EWPT_COM_UART, USARTx_CLK(0), UART_9600);
     uart_tx_enable(EWPT_COM_UART, MASK_ENABLE);
     uart_rx_enable(EWPT_COM_UART, MASK_ENABLE);

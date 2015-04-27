@@ -912,7 +912,11 @@ void app_create_server_service_DB(void)
     app_otas_create_db();
 #endif
 #if BLE_QPP_SERVER
+#if BLE_EWPT_SERVER
+    app_qpps_env->tx_char_num = QPPS_VAL_CHAR_NUM;
+#else
     app_qpps_env->tx_char_num = 7;
+#endif
     app_qpps_create_db(app_qpps_env->tx_char_num);
 #endif
 }
