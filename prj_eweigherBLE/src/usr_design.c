@@ -121,7 +121,7 @@ static uint32_t get_bit_num(uint32_t val)
 uint8_t get_all_notify_on(void)
 {
   uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
-	if (bit_num >= QPPS_VAL_CHAR_NUM)
+	if (bit_num == 1)
 		return	SCALE_QPPS_NTF_ON;
 	else
 		return	SCALE_QPPS_NTF_NOT_ON;
@@ -260,7 +260,7 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 #if		(BLE_EWPT_SERVER)																
 						//all notify on and app can get 
             uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
-            if (bit_num >= QPPS_VAL_CHAR_NUM + 1)
+            if (SCALE_QPPS_NTF_ON == get_all_notify_on())
 						{							
 									if (SCALE_POWER_ON == get_scale_status())
 									{
@@ -363,7 +363,7 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 #if	(BLE_EWPT_SERVER)
 						//if all notify is on,the enter the tran mode and start receive com data
             uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
-            if (bit_num >= QPPS_VAL_CHAR_NUM + 1)  
+            if (SCALE_QPPS_NTF_ON == get_all_notify_on())  
             {                
                 QPRINTF("all notify is on!\r\n");
 								uint8_t status =  SCALE_QPPS_NTF_ON;
@@ -400,7 +400,7 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 #if	(BLE_EWPT_SERVER)
 								// when finish send data to app,restart receive data for com
 								uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
-								if (bit_num >= QPPS_VAL_CHAR_NUM)
+								if (SCALE_QPPS_NTF_ON == get_all_notify_on())
 								{
 									com_env.com_state = COM_TRAN;
 								}

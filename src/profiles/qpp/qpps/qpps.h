@@ -43,9 +43,8 @@
  ****************************************************************************************
  */
 #define QPPS_MANDATORY_MASK             (0x00ff)
-#define QPPS_RX_CHAR_UUID              "\x00\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4"
-#define QPPS_FIRST_TX_CHAR_UUID        "\x01\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4"
-#define QPPS_SECOND_TX_CHAR_UUID        "\x02\x96\x12\x16\x54\x92\x75\xB5\xA2\x45\xFD\xAB\x39\xC4\x4B\xD4"
+#define QPPS_RX_CHAR_UUID              "\x00\x00\x00\x00\x00\x00\x00\x80\x00\x10\x00\x60\x01\xD0\x18\xD6"
+#define QPPS_TX_CHAR_UUID        			 "\x00\x00\x00\x00\x00\x00\x00\x80\x00\x10\x00\x60\x02\xD0\x18\xD6"
 
 /*
  * MACROS
@@ -64,14 +63,10 @@ enum
     QPPS_IDX_RX_DATA_VAL,
     QPPS_IDX_RX_DATA_USER_DESP,
 	
-    QPPS_IDX_VAL_CHAR_F,
-    QPPS_IDX_VAL_F,
-    QPPS_IDX_VAL_NTF_CFG_F,
-		QPPS_IDX_VAL_USER_DESP_F,
-	
-    QPPS_IDX_VAL_CHAR,
-    QPPS_IDX_VAL,
-    QPPS_IDX_VAL_NTF_CFG,
+    QPPS_IDX_TX_VAL_CHAR,
+    QPPS_IDX_TX_VAL,
+    QPPS_IDX_TX_VAL_NTF_CFG,
+		QPPS_IDX_TX_VAL_USER_DESP,
 
     QPPS_IDX_NB,
 };
@@ -115,7 +110,6 @@ extern const struct atts_desc_ext qpps_att_db[QPPS_IDX_NB];
 extern uint8_t qpps_svc[ATT_UUID_128_LEN];
 
 extern const struct atts_char128_desc qpps_value_char;
-extern const struct atts_char128_desc qpps_value_char_f;
 extern const struct atts_char128_desc qpps_char_rx_data;
 
 extern struct qpps_env_tag qpps_env;

@@ -912,12 +912,8 @@ void app_create_server_service_DB(void)
     app_otas_create_db();
 #endif
 #if BLE_QPP_SERVER
-#if BLE_EWPT_SERVER
-    app_qpps_env->tx_char_num = QPPS_VAL_CHAR_NUM;
-#else
-    app_qpps_env->tx_char_num = 7;
-#endif
-    app_qpps_create_db(app_qpps_env->tx_char_num);
+/*@@@@@@@@*/		
+    app_qpps_create_db();
 #endif
 }
 #endif
@@ -1207,7 +1203,7 @@ uint8_t app_set_adv_data(uint16_t disc_mode)
     memcpy((char *)&app_env.adv_data[5], device_name.name, device_name.namelen);
     len = 5 + device_name.namelen;
 #else
-    nvds_tag_len_t name_length = 31 - 5; // The maximum length of Advertising data is 31 Octets
+    nvds_tag_len_t name_length = BD_NAME_SIZE; // The maximum length of Advertising data is 31 Octets
 
     if (NVDS_OK != nvds_get(NVDS_TAG_DEVICE_NAME, &name_length, &app_env.adv_data[5]))
     {
@@ -1223,7 +1219,11 @@ uint8_t app_set_adv_data(uint16_t disc_mode)
     app_env.adv_data[4] = GAP_AD_TYPE_SHORTENED_NAME;
     len = 5 + name_length;
 #endif
-    
+		/// GAP_AD_TYPE_MANU_SPECIFIC_DATA
+		strcpy((char *)&app_env.adv_data[len+2], MANU_NAME);
+		app_env.adv_data[len] = strlen(MANU_NAME) + 1;
+    app_env.adv_data[len + 1] = GAP_AD_TYPE_MANU_SPECIFIC_DATA;
+		len += 2 + strlen(MANU_NAME);
     return len;
 }
 #endif
@@ -1258,13 +1258,13 @@ uint8_t app_set_scan_rsp_data(uint16_t srv_flag)
 #if ( BLE_AN_SERVER || BLE_CSC_SENSOR || BLE_PAS_SERVER || BLE_HT_THERMOM || BLE_RSC_SENSOR\
       || BLE_BP_SENSOR || BLE_HR_SENSOR || BLE_GL_SENSOR || BLE_TIP_SERVER || BLE_SP_SERVER\
       || BLE_HID_DEVICE || BLE_PROX_REPORTER || BLE_FINDME_TARGET || BLE_DIS_SERVER || BLE_BATT_SERVER\
-      || BLE_OTA_SERVER )
+      || BLE_OTA_SERVER || BLE_EWPT_SERVER )
     uint8_t remain_len = 25-2;
 #endif
     bool complete = true;
     len = 2;
 
-#if BLE_QPP_SERVER
+#if BLE_QPP_SERVER || BLE_EWPT_SERVER
     if (srv_flag & BLE_QPPS_SERVER_BIT)
     {
         app_env.scanrsp_data[0] = ATT_UUID_128_LEN + 1;

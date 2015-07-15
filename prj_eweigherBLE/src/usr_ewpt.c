@@ -504,23 +504,24 @@ int app_com_uart_rx_done_ind_handler(ke_msg_id_t const msgid, void const *param,
 								                  
                  uint8_t cnt=0,sent_pagket=0; 
 
-                for (cnt = 0; (sent_pagket<pagket_num) && cnt < (QPPS_VAL_CHAR_NUM + 1); cnt++)
-                {
-                     if ((app_qpps_env->char_status >> cnt) & QPPS_VALUE_NTF_CFG)
-                     {
-												app_qpps_env->char_status &= ~(QPPS_VALUE_NTF_CFG << cnt);
-											 
-                         if((pagket_res)&&(pagket_num-sent_pagket==1)/* && (com_env.result_st == 0x0)*/)
-														app_qpps_data_send(app_qpps_env->conhdl, cnt, pagket_res, (frame->data+sent_pagket*20));
-                         else
-												 {
-														//if (com_env.result_st == 0x00)
-														app_qpps_data_send(app_qpps_env->conhdl, cnt, QPP_DATA_MAX_LEN, (frame->data+sent_pagket*20)); 
-												 }
-                         
-                         sent_pagket++;
-                     }
-                }
+/*@@@@@@@@*/
+//                for (cnt = 0; (sent_pagket<pagket_num) && cnt < (QPPS_VAL_CHAR_NUM + 1); cnt++)
+//                {
+//                     if ((app_qpps_env->char_status >> cnt) & QPPS_VALUE_NTF_CFG)
+//                     {
+//												app_qpps_env->char_status &= ~(QPPS_VALUE_NTF_CFG << cnt);
+//											 
+//                         if((pagket_res)&&(pagket_num-sent_pagket==1)/* && (com_env.result_st == 0x0)*/)
+//														app_qpps_data_send(app_qpps_env->conhdl, cnt, pagket_res, (frame->data+sent_pagket*20));
+//                         else
+//												 {
+//														//if (com_env.result_st == 0x00)
+//														app_qpps_data_send(app_qpps_env->conhdl, cnt, QPP_DATA_MAX_LEN, (frame->data+sent_pagket*20)); 
+//												 }
+//                         
+//                         sent_pagket++;
+//                     }
+//                }
             }
         }break;
         default :break;

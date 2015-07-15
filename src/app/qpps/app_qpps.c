@@ -50,11 +50,10 @@
  * 
  ****************************************************************************************
  */
-void app_qpps_create_db(uint8_t char_num)
+void app_qpps_create_db(void)
 {
     struct qpps_create_db_req * msg = KE_MSG_ALLOC(QPPS_CREATE_DB_REQ, TASK_QPPS, TASK_APP, qpps_create_db_req);
 
-    msg->tx_char_num = char_num;
 
     ke_msg_send(msg);
 }

@@ -102,6 +102,10 @@
     #define QN_LOCAL_NAME           "FireBLE"
 #endif
 
+
+///manufacturer name
+#define	MANU_NAME		"TChip_EWeighher"
+
 /// DC-DC enable
 #if (defined(CFG_DC_DC))
     #define QN_DC_DC_ENABLE         true

@@ -38,7 +38,7 @@
  ****************************************************************************************
  */
 
-#define QPP_SVC_PRIVATE_UUID        "\xFB\x34\x9B\x5F\x80\x00\x00\x80\x00\x10\x00\x00\xE9\xFE\x00\x00"
+#define QPP_SVC_PRIVATE_UUID        "\x00\x00\x00\x00\x00\x00\x00\x80\x00\x10\x00\x60\x01\xD0\x18\xD6"
 
 // Used as max data length
 #define QPP_DATA_MAX_LEN         (20)

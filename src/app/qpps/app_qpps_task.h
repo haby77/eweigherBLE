@@ -30,7 +30,6 @@ struct app_qpps_env_tag
 {
     // Profile role state: enabled/disabled
     uint8_t enabled;
-    uint8_t tx_char_num;
     // Connection handle
     uint16_t conhdl;
     uint32_t features;

@@ -164,11 +164,11 @@ int app_qpps_data_send_cfm_handler(ke_msg_id_t const msgid,
 				// Allow new notify
         app_qpps_env->char_status |= (1 << param->char_index);
 
-        // Send next group data until current data have been sent
-        if (get_bit_num(app_qpps_env->char_status) == (app_qpps_env->tx_char_num))
-        {
-            //app_test_send_data(app_qpps_env->tx_char_num);
-        }
+//        // Send next group data until current data have been sent
+//        if (get_bit_num(app_qpps_env->char_status) == (app_qpps_env->tx_char_num))
+//        {
+//            //app_test_send_data(app_qpps_env->tx_char_num);
+//        }
 				app_task_msg_hdl(msgid,param);
     }
     else
@@ -206,11 +206,11 @@ int app_qpps_cfg_indntf_ind_handler(ke_msg_id_t const msgid,
         {
             app_qpps_env->features |= (QPPS_VALUE_NTF_CFG << param->char_index);
             // App send data if all of characteristic have been configured
-            if (get_bit_num(app_qpps_env->features) == (app_qpps_env->tx_char_num + 1))
-            {
-                app_qpps_env->char_status = app_qpps_env->features;
-                //app_test_send_data(app_qpps_env->tx_char_num - 1);
-            }
+//            if (get_bit_num(app_qpps_env->features) == (app_qpps_env->tx_char_num + 1))
+//            {
+//                app_qpps_env->char_status = app_qpps_env->features;
+//                //app_test_send_data(app_qpps_env->tx_char_num - 1);
+//            }
         }
         else
         {

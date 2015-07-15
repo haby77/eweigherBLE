@@ -4,18 +4,6 @@
 #include "app_env.h"
 #include "uart.h"
 
-//the notify char number
-#define QPPS_VAL_CHAR_NUM	(2)
-
-/*no need
-#if defined(EWPT_V2_0)
-#define	COM_WAKEUP_TRIGGER		(GPIO_P13)
-#elif defined(EWPT_V3_0)
-#define	COM_WAKEUP_TRIGGER		(GPIO_P31)
-#endif
-*/
-
-//#define	COM_WAKEUP						(GPIO_P03)
 #define	SCALE_STATUS_PIN				(GPIO_P31)			//Power On:High          Power Off:Low
 #define	SCALE_WAKEUP_PIN					(GPIO_P12)
 
@@ -92,7 +80,7 @@ struct com_env_tag
     
     ///UART RX parameter 
     uint8_t com_rx_len;
-    uint8_t com_rx_buf[QPPS_VAL_CHAR_NUM*QPP_DATA_MAX_LEN];
+    uint8_t com_rx_buf[QPP_DATA_MAX_LEN];
 		uint8_t result_st;
 		usr_data scale_user_data;
 
