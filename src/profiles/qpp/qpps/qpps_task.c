@@ -200,7 +200,7 @@ static int qpps_enable_req_handler(ke_msg_id_t const msgid,
     if(param->con_type == PRF_CON_NORMAL)
     {
 				qpps_env.features = param->ntf_en;
-				for (uint8_t i = 0; i < qpps_env.ntf_char_num; i++)
+				for (uint8_t i = 0; i < (qpps_env.ntf_char_num + 1); i++)
 				{
 					//Set Val NTF Configuration in DB
 						if (QPPS_IS_SUPPORTED(i, QPPS_VALUE_NTF_CFG))
@@ -340,6 +340,12 @@ static int gatt_write_cmd_ind_handler(ke_msg_id_t const msgid,
     {
         // Client Char. Configuration
 				uint8_t char_index;
+////////test for old value			
+				uint8_t *test_old_value;
+				atts_size_t test_length;
+        attsdb_att_get_value(param->handle, &test_length, &test_old_value);
+				QPRINTF("test_old value is 0x%02X\r\n",co_read16p(test_old_value));
+				
 				if ((param->handle - (qpps_env.shdl + QPPS_IDX_VAL_NTF_CFG_F))== 0)
 				{
 						char_index = 0;

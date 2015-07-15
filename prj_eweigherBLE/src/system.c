@@ -94,7 +94,7 @@ static void SystemIOCfg(void)
                              );
 
     // pin select
-    syscon_SetPMCR2(QN_SYSCON, SYSCON_MASK_UART1_PIN_SEL | SYSCON_MASK_SPI0_PIN_SEL);
+    syscon_SetPMCR2(QN_SYSCON,0);
 
     // driver ability
     syscon_SetPDCR(QN_SYSCON, 0x0); // 0 : low driver, 1 : high driver
@@ -188,8 +188,8 @@ void SystemInit(void)
 #endif
 
 #if	(BLE_EWPT_SERVER)
-		gpio_set_direction(COM_WAKEUP_TRIGGER,GPIO_OUTPUT);
-		gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_HIGH);
+		gpio_pull_set(SCALE_STATUS_PIN,GPIO_PULL_UP);
+		gpio_set_direction(SCALE_STATUS_PIN,GPIO_INPUT);
 		
     uart_init(EWPT_COM_UART, USARTx_CLK(0), UART_9600);
     uart_tx_enable(EWPT_COM_UART, MASK_ENABLE);

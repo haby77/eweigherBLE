@@ -58,16 +58,17 @@
 #define LED_ON_DUR_IDLE                   0
 #define LED_OFF_DUR_IDLE                  0xffff
 
-#define APP_HEART_RATE_MEASUREMENT_TO     1400 // 14s
-#define APP_HRPS_ENERGY_EXPENDED_STEP     50
+//#define APP_HEART_RATE_MEASUREMENT_TO     1400 // 14s
+//#define APP_HRPS_ENERGY_EXPENDED_STEP     50
 //#define EVENT_BUTTON1_PRESS_ID            0
 
 ///IOS Connection Parameter
-#define IOS_CONN_INTV_MAX                              0x0010
-#define IOS_CONN_INTV_MIN                              0x0008
+#define IOS_CONN_INTV_MAX                              0x0640
+#define IOS_CONN_INTV_MIN                              0x0480
 #define IOS_SLAVE_LATENCY                              0x0000
-#define IOS_STO_MULT                                   0x012c
+#define IOS_STO_MULT                                   0x12C0
 
+//scale error reason
 enum	scale_error
 {
 		ERROR_SCALE_POWER_DOWN = 0x0,
@@ -115,6 +116,15 @@ static uint32_t get_bit_num(uint32_t val)
         val >>= 1;
     }
     return bit_cnt;
+}
+
+uint8_t get_all_notify_on(void)
+{
+  uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
+	if (bit_num >= QPPS_VAL_CHAR_NUM)
+		return	SCALE_QPPS_NTF_ON;
+	else
+		return	SCALE_QPPS_NTF_NOT_ON;
 }
 
 /**
@@ -175,6 +185,7 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
     switch(msgid)
     {
         case GAP_SET_MODE_REQ_CMP_EVT:
+				{
             if(APP_IDLE == ke_state_get(TASK_APP))
             {
                 usr_led1_set(LED_ON_DUR_ADV_FAST, LED_OFF_DUR_ADV_FAST);
@@ -191,13 +202,17 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 #endif
             }
             break;
+					}
 
         case GAP_ADV_REQ_CMP_EVT:
+				{
             usr_led1_set(LED_ON_DUR_IDLE, LED_OFF_DUR_IDLE);
             ke_timer_clear(APP_ADV_INTV_UPDATE_TIMER, TASK_APP);
             break;
+				}
 
         case GAP_DISCON_CMP_EVT:
+				{
             usr_led1_set(LED_ON_DUR_IDLE, LED_OFF_DUR_IDLE);
 
             // start adv
@@ -205,10 +220,11 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
                     app_env.adv_data, app_set_adv_data(GAP_GEN_DISCOVERABLE),
                     app_env.scanrsp_data, app_set_scan_rsp_data(app_get_local_service_flag()),
                     GAP_ADV_FAST_INTV1, GAP_ADV_FAST_INTV2);
-						gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_HIGH);						
             break;
-
+				}
+				
         case GAP_LE_CREATE_CONN_REQ_CMP_EVT:
+				{
             if(((struct gap_le_create_conn_req_cmp_evt *)param)->conn_info.status == CO_ERROR_NO_ERROR)
             {
                 if(GAP_PERIPHERAL_SLV == app_get_role())
@@ -237,83 +253,165 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
                 }
             }
             break;
+					}
 						
 				case QPPS_DAVA_VAL_IND:
-#if		(BLE_EWPT_SERVER)							
 							{
-									wakeup_scale();
-									if (com_env.scale_state == power_on)
+#if		(BLE_EWPT_SERVER)																
+						//all notify on and app can get 
+            uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
+            if (bit_num >= QPPS_VAL_CHAR_NUM + 1)
+						{							
+									if (SCALE_POWER_ON == get_scale_status())
 									{
+											//get the user data from app and printf
 											struct qpps_data_val_ind* par = (struct qpps_data_val_ind*)param;
+#ifdef CATCH_LOG										
 											for (uint8_t i=0;i<par->length;i++)
 													QPRINTF("%02X ",par->data[i]);
 											QPRINTF("\r\n");
+#endif								
+											//check data packet head and tail
 											if ((par->data[0] == 0x02) && (par->data[1] == 0x53) && (par->data[par->length-1] == 0x03))
 											{
+													//calc the xor value
 													uint8_t i,xor_sum = 0;
+												
+													//xor all data
 													for (i = 0;i < par->length-2;i++)
 														xor_sum ^= par->data[i];
+												
+													//xor checkout
 													if (xor_sum == par->data[par->length - 2])
 													{
+															uint8_t err;
 															memcpy(com_env.scale_user_data.data,par->data,par->length);
+#ifdef	CATCH_LOG														
 															QPRINTF("user_data:");
 															for (uint8_t i=0;i<par->length;i++)
 																	QPRINTF("0x%2X ",com_env.scale_user_data.data[i]);
 															QPRINTF("\r\n");
+#endif														
+															///send sync information to com
 															com_pdu_send(par->length,&(par->data[0]));
 															com_env.scale_user_data.update_flag = 0;
+															err = SCALE_QPPS_DATA_SEND;
+															app_qpps_data_send(app_qpps_env->conhdl,0,1,&err);
 															QPRINTF("\r\n\r\n------->ready!\r\n\r\n");
-															//uart_write(QN_UART1, &(par->data[0]),par->length,app_event_pt_tx_handler );
 													}
 													else
 													{
+															uint8_t err;
+															err = SCALE_XOR_SUM_ERR;
+															app_qpps_data_send(app_qpps_env->conhdl,0,1,&err);
+															char xor_sum_a[4];
+															sprintf(xor_sum_a,"0x%X",xor_sum);
+															app_qpps_data_send(app_qpps_env->conhdl,1,sizeof(xor_sum_a),(uint8_t *)xor_sum_a);
+#ifdef	CATCH_LOG
 														QPRINTF("xor_sum :0x%02X  error!\r\n",xor_sum);
+#endif
+													}
+											}
+											else
+											{
+													/// send the power on status to app
+													uint8_t status = SCALE_POWER_ON;
+													app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(status),&status);
+													{
+#ifdef	CATCH_LOG
+														uint8_t result;
+														result = (gpio_read_pin(GPIO_P31) == GPIO_HIGH);
+														QPRINTF("GPIO_P31:  ");
+														QPRINTF("%s\r\n",result ? "HIGH":"LOW");
+														app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(uint8_t),&result);
+#endif
 													}
 											}
 									}
 									else
 									{
-											uint8_t error[] =  "B";
-											app_qpps_data_send(app_qpps_env->conhdl,0,1,error);
+#ifdef	CATCH_LOG
+											QPRINTF("\r\n@@@notify on and power down,wakeup!\r\n");
+#endif										
+											//try wakeup scale
+											wakeup_scale();
+											
+											//send err code to app
+											uint8_t error =  SCALE_POWER_OFF;
+											app_qpps_data_send(app_qpps_env->conhdl,0,1,&error);
 									}
-							}
+								}
+						else
+						{
+#ifdef	CATCH_LOG
+								QPRINTF("\r\n@@@not all notify is on\r\n");
+#endif							
+								com_env.com_state = COM_IDLE;
+								uint8_t error =  SCALE_QPPS_NTF_NOT_ON;
+								app_qpps_data_send(app_qpps_env->conhdl,0,1,&error);
+								ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
+						}
 #endif
 						break;
+							}
 
         case QPPS_DISABLE_IND:
             break;
 
         case QPPS_CFG_INDNTF_IND:
-            				{
+        {
+#if	(BLE_EWPT_SERVER)
+						//if all notify is on,the enter the tran mode and start receive com data
             uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
             if (bit_num >= QPPS_VAL_CHAR_NUM + 1)  
             {                
                 QPRINTF("all notify is on!\r\n");
-								gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_LOW);
+								uint8_t status =  SCALE_QPPS_NTF_ON;
+								app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(status),&status);
+								com_env.com_state = COM_TRAN;
+								if (SCALE_POWER_DOWN == get_scale_status())
+									wakeup_scale();
+								else
+								{
+										QPRINTF("\r\n@@@POWER_ON!\r\n");
+										uint8_t err =  SCALE_POWER_ON;
+										app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(err),&err);									
+								}
+/*								gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_LOW);
 								if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
 										com_uart_rx_start();
 								com_env.com_state = COM_CONN_EMPTY;
-            }
+
+*/
+						}
 						else
 						{
-								com_env.com_state = COM_CONN_FULL;
+								com_env.com_state = COM_IDLE;
+								uint8_t err =  SCALE_QPPS_NTF_NOT_ON;
+								app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(err),&err);
 						}
-            
-        }
+ 						ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
+#endif           
 				break;
+        }
 				
 				case	QPPS_DATA_SEND_CFM	:							
 					{
+#if	(BLE_EWPT_SERVER)
+								// when finish send data to app,restart receive data for com
 								uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
 								if (bit_num >= QPPS_VAL_CHAR_NUM)
 								{
-										com_uart_rx_start();
-										com_env.com_state = COM_CONN_EMPTY;
+									com_env.com_state = COM_TRAN;
 								}
-								//if (((struct qpps_data_send_cfm*)param)->)
-								//ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
-						}
+								else
+								{
+									com_env.com_state = COM_IDLE;
+								}
+								ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
+#endif
 						break;
+					}
 
 #if	(BLE_OTA_SERVER)						
         case OTAS_TRANSIMIT_STATUS_IND:
@@ -383,7 +481,7 @@ int app_gap_adv_intv_update_timer_handler(ke_msg_id_t const msgid, void const *p
         app_gap_adv_start_req(GAP_GEN_DISCOVERABLE|GAP_UND_CONNECTABLE, 
                                 app_env.adv_data, app_set_adv_data(GAP_GEN_DISCOVERABLE), 
                                 app_env.scanrsp_data, app_set_scan_rsp_data(app_get_local_service_flag()),
-                                GAP_ADV_SLOW_INTV, GAP_ADV_SLOW_INTV);
+                                GAP_ADV_SLOW_MAX_INTV, GAP_ADV_SLOW_MAX_INTV);
     }
 
     return (KE_MSG_CONSUMED);
@@ -546,10 +644,12 @@ void gpio_interrupt_callback(enum gpio_pin pin)
             //Button 1 is used to enter adv mode.
             usr_button1_cb();
             break;
-				
+
+/*#if	(BLE_EWPT_SERVER)				
 				case	COM_WAKEUP:
 							com_wakeup_cb();
-
+#endif*/
+				
 #if (defined(QN_TEST_CTRL_PIN))
         case QN_TEST_CTRL_PIN:
             //When test controll pin is changed to low level, this function will reboot system.
@@ -575,7 +675,7 @@ void usr_init(void)
 		com_init();
 #endif	
 
-		if(KE_EVENT_OK != ke_evt_callback_set(EVENT_BUTTON1_PRESS_ID, 
+	if(KE_EVENT_OK != ke_evt_callback_set(EVENT_BUTTON1_PRESS_ID, 
                                             app_event_button1_press_handler))
     {
         ASSERT_ERR(0);

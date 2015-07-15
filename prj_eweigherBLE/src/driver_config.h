@@ -240,7 +240,7 @@
 #define CLOCK_32K_CORRECTION_EN                         FALSE       /*!< Enable/Disable 32K clock correction */
 #endif
 
-#define UART_RX_ACTIVE_BIT_EN                           FALSE       /*!< Enable/Disable uart rx active bit set */
+#define UART_RX_ACTIVE_BIT_EN                           TRUE       /*!< Enable/Disable uart rx active bit set */
 #define SPI_RX_ACTIVE_BIT_EN                            FALSE       /*!< Enable/Disable spi rx active bit set */
 
 /// @}QN_DRIVER_CONFIG

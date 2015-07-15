@@ -238,6 +238,9 @@
  
 /// eweigherBLE configure
  #define CFG_FIREBLE_EWPT
+ 
+/// eweigherBLE version
+ #define	EWPT_V2_0
 
 /// UART Demo Menu
 // #define CFG_DEMO_MENU
