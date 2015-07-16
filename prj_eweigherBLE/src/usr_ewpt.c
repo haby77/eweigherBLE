@@ -176,11 +176,11 @@ void	app_com_wakeup_process(void)
 			
 			case COM_BUSY:
 			{
-				if (SCALE_POWER_ON != get_scale_status())
-				{
-					com_env.com_state = COM_IDLE;					
-					uart_rx_enable(EWPT_COM_UART,MASK_DISABLE);
-				}
+//				if (SCALE_POWER_ON != get_scale_status())
+//				{
+//					com_env.com_state = COM_IDLE;					
+//					uart_rx_enable(EWPT_COM_UART,MASK_DISABLE);
+//				}
 				break;
 			}
 							
@@ -239,7 +239,8 @@ void com_uart_rx(void)
 							uint8_t status;
 							status = SCALE_POWER_DOWN;
 							app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(uint8_t),&status);
-							ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
+							//ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
+							com_uart_rx_start();
 				}
 				else
 				{
@@ -254,7 +255,8 @@ void com_uart_rx(void)
 #endif
 							status = SCALE_POWER_ON;
 							app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(uint8_t),&status);
-							ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
+							com_uart_rx_start();
+//							ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
 //									{
 //										uint8_t result;
 //										result = (gpio_read_pin(GPIO_P31) == GPIO_HIGH);
@@ -341,6 +343,7 @@ void com_uart_rx(void)
 															else
 															{
 																	QPRINTF("CRC verify error!\r\n");
+																	status = SCALE_COM_CRC_CHECKOUT_ERR,
 																	app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(err),&err);
 																	com_uart_rx_start();
 															}
@@ -388,10 +391,10 @@ void com_uart_rx(void)
 						else
 						{
 #ifdef	CATCH_LOG
-					QPRINTF("\r\n@@@First byte error!\r\n");
-#endif
+							QPRINTF("\r\n@@@First byte error!\r\n");
 							err = SCALE_COM_RX_FIRST_BYTE_ERR;						
 							app_qpps_data_send(app_qpps_env->conhdl,0,1,&err);
+#endif
 							com_uart_rx_start();
 						}
 				}

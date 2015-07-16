@@ -262,8 +262,8 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
             uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
             if (bit_num >= QPPS_VAL_CHAR_NUM + 1)
 						{							
-									if (SCALE_POWER_ON == get_scale_status())
-									{
+//									if (SCALE_POWER_ON == get_scale_status())
+//									{
 											//get the user data from app and printf
 											struct qpps_data_val_ind* par = (struct qpps_data_val_ind*)param;
 #ifdef CATCH_LOG										
@@ -311,22 +311,22 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 														QPRINTF("xor_sum :0x%02X  error!\r\n",xor_sum);
 #endif
 													}
-											}
-											else
-											{
-													/// send the power on status to app
-													uint8_t status = SCALE_POWER_ON;
-													app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(status),&status);
-													{
-#ifdef	CATCH_LOG
-														uint8_t result;
-														result = (gpio_read_pin(GPIO_P31) == GPIO_HIGH);
-														QPRINTF("GPIO_P31:  ");
-														QPRINTF("%s\r\n",result ? "HIGH":"LOW");
-														app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(uint8_t),&result);
-#endif
-													}
-											}
+//											}
+//											else
+//											{
+//													/// send the power on status to app
+//													uint8_t status = SCALE_POWER_ON;
+//													app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(status),&status);
+//													{
+//#ifdef	CATCH_LOG
+//														uint8_t result;
+//														result = (gpio_read_pin(GPIO_P31) == GPIO_HIGH);
+//														QPRINTF("GPIO_P31:  ");
+//														QPRINTF("%s\r\n",result ? "HIGH":"LOW");
+//														app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(uint8_t),&result);
+//#endif
+//													}
+//											}
 									}
 									else
 									{
@@ -334,7 +334,7 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 											QPRINTF("\r\n@@@notify on and power down,wakeup!\r\n");
 #endif										
 											//try wakeup scale
-											wakeup_scale();
+//											wakeup_scale();
 											
 											//send err code to app
 											uint8_t error =  SCALE_POWER_OFF;
@@ -369,14 +369,14 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 								uint8_t status =  SCALE_QPPS_NTF_ON;
 								app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(status),&status);
 								com_env.com_state = COM_TRAN;
-								if (SCALE_POWER_DOWN == get_scale_status())
-									wakeup_scale();
-								else
-								{
-										QPRINTF("\r\n@@@POWER_ON!\r\n");
-										uint8_t err =  SCALE_POWER_ON;
-										app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(err),&err);									
-								}
+//								if (SCALE_POWER_DOWN == get_scale_status())
+//									wakeup_scale();
+//								else
+//								{
+//										QPRINTF("\r\n@@@POWER_ON!\r\n");
+//										uint8_t err =  SCALE_POWER_ON;
+//										app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(err),&err);									
+//								}
 /*								gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_LOW);
 								if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
 										com_uart_rx_start();
@@ -386,7 +386,7 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 						}
 						else
 						{
-								com_env.com_state = COM_IDLE;
+//								com_env.com_state = COM_IDLE;
 								uint8_t err =  SCALE_QPPS_NTF_NOT_ON;
 								app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(err),&err);
 						}
