@@ -326,14 +326,12 @@ static int gatt_write_cmd_ind_handler(ke_msg_id_t const msgid,
     if (param->conhdl == qpps_env.conhdl)
     {
         // Client Char. Configuration
-				uint8_t char_index;
 ////////test for old value			
 				uint8_t *test_old_value;
 				atts_size_t test_length;
         attsdb_att_get_value(param->handle, &test_length, &test_old_value);
 				
-        if (((param->handle > (qpps_env.shdl + QPPS_IDX_TX_VAL_CHAR)) || ((param->handle - (qpps_env.shdl + QPPS_IDX_TX_VAL_NTF_CFG))== 0)) 
-					&& ((char_index % 3) == 0))
+        if (((param->handle > (qpps_env.shdl + QPPS_IDX_TX_VAL_CHAR)) || ((param->handle - (qpps_env.shdl + QPPS_IDX_TX_VAL_NTF_CFG))== 0)) )
         {
             uint16_t value = 0x0000;
 
@@ -344,11 +342,11 @@ static int gatt_write_cmd_ind_handler(ke_msg_id_t const msgid,
             {
                 if (value == PRF_CLI_STOP_NTFIND)
                 {
-                    qpps_env.features &= ~(QPPS_VALUE_NTF_CFG << (char_index / 3));
+                    qpps_env.features &= ~QPPS_VALUE_NTF_CFG;
                 }
                 else //PRF_CLI_START_NTF
                 {
-                    qpps_env.features |= QPPS_VALUE_NTF_CFG << (char_index / 3);
+                    qpps_env.features |= QPPS_VALUE_NTF_CFG;
                 }
             }
             else
@@ -374,7 +372,7 @@ static int gatt_write_cmd_ind_handler(ke_msg_id_t const msgid,
                                                                         qpps_env.appid, TASK_QPPS,
                                                                         qpps_cfg_indntf_ind);
 
-                        ind->char_index = (char_index / 3);
+                        ind->char_index = 0;
                         memcpy(&ind->cfg_val, &value, sizeof(uint16_t));
 
                         ke_msg_send(ind);

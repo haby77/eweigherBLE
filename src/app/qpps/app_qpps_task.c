@@ -43,18 +43,6 @@ struct app_qpps_env_tag *app_qpps_env = &app_env.qpps_ev;
  *
  ****************************************************************************************
  */
-static uint32_t get_bit_num(uint32_t val)
-{
-    uint32_t bit_cnt = 0;
-
-    while (val != 0)
-    {
-        if (val & 0x1)
-            bit_cnt++;
-        val >>= 1;
-    }
-    return bit_cnt;
-}
 
 /*
  ****************************************************************************************
@@ -205,6 +193,7 @@ int app_qpps_cfg_indntf_ind_handler(ke_msg_id_t const msgid,
         if (param->cfg_val == PRF_CLI_START_NTF)
         {
             app_qpps_env->features |= (QPPS_VALUE_NTF_CFG << param->char_index);
+            app_qpps_env->char_status |= app_qpps_env->features;
             // App send data if all of characteristic have been configured
 //            if (get_bit_num(app_qpps_env->features) == (app_qpps_env->tx_char_num + 1))
 //            {

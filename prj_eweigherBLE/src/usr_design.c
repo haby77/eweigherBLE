@@ -257,6 +257,17 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 						
 				case QPPS_DAVA_VAL_IND:
 							{
+								//get the user data from app and printf
+								struct qpps_data_val_ind* par = (struct qpps_data_val_ind*)param;
+#ifdef CATCH_LOG										
+								for (uint8_t i=0;i<par->length;i++)
+										QPRINTF("%02X ",par->data[i]);
+								QPRINTF("\r\n");
+#endif
+#if		(BLE_EWPT_SERVER)
+									com_pdu_send(par->length,par->data);
+#endif								
+/*								
 #if		(BLE_EWPT_SERVER)																
 						//all notify on and app can get 
             uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
@@ -352,6 +363,7 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 								ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
 						}
 #endif
+*/
 						break;
 							}
 
@@ -360,6 +372,8 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 
         case QPPS_CFG_INDNTF_IND:
         {
+					com_uart_rx_start();
+/*
 #if	(BLE_EWPT_SERVER)
 						//if all notify is on,the enter the tran mode and start receive com data
             uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
@@ -377,12 +391,12 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 										uint8_t err =  SCALE_POWER_ON;
 										app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(err),&err);									
 								}
-/*								gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_LOW);
+								gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_LOW);
 								if (gpio_read_pin(COM_WAKEUP) == GPIO_LOW)
 										com_uart_rx_start();
 								com_env.com_state = COM_CONN_EMPTY;
 
-*/
+
 						}
 						else
 						{
@@ -391,12 +405,16 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 								app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(err),&err);
 						}
  						ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
-#endif           
+#endif
+*/           
 				break;
         }
 				
 				case	QPPS_DATA_SEND_CFM	:							
 					{
+						com_env.com_state = COM_TRAN;
+						ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
+/*						
 #if	(BLE_EWPT_SERVER)
 								// when finish send data to app,restart receive data for com
 								uint8_t bit_num = get_bit_num(app_qpps_env->char_status);
@@ -410,6 +428,7 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 								}
 								ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
 #endif
+*/						
 						break;
 					}
 

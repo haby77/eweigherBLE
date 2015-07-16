@@ -77,12 +77,11 @@ struct com_env_tag
     ///UART TX parameter 
     uint8_t tx_state;       //either transmitting or done.
     struct co_list queue_tx;///Queue of kernel messages corresponding to packets sent through HCI
+    struct co_list queue_rx;///Queue of kernel messages corresponding to packets sent through HCI
     
     ///UART RX parameter 
     uint8_t com_rx_len;
-    uint8_t com_rx_buf[QPP_DATA_MAX_LEN];
-		uint8_t result_st;
-		usr_data scale_user_data;
+    uint8_t com_rx_buf[10*QPP_DATA_MAX_LEN];
 
 };
 
