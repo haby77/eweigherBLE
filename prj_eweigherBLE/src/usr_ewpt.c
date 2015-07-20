@@ -34,7 +34,6 @@ void com_init(void)
     //for com uart tx  
     com_env.tx_state = COM_UART_TX_IDLE;	//initialize tx state
 		com_env.scale_state = power_down;
-		com_env.result_st = 0x0;
 		com_env.scale_user_data.update_flag = 1;
     co_list_init(&com_env.queue_tx);			//init TX queue
 
@@ -160,10 +159,9 @@ void com_uart_rx(void)
 		com_env.com_state = COM_CONN_FULL;
 		if (com_env.com_rx_len > 1 && com_env.com_rx_len < 40)
 		{
-				if ((com_env.com_rx_len == 6) && (com_env.com_rx_buf[0] == 0x02) && (com_env.com_rx_buf[1] == 0x6f) && (com_env.com_rx_buf[2] == 0x66) && (com_env.com_rx_buf[3] == 0x66) && (com_env.com_rx_buf[4] == 0x03) && (com_env.com_rx_buf[com_env.com_rx_len - 1] == 0xE0))
+				if ((com_env.com_rx_len == 6) && (com_env.com_rx_buf[0] == 0x02) && (com_env.com_rx_buf[1] == 0x6f) && (com_env.com_rx_buf[2] == 0x66) && (com_env.com_rx_buf[3] == 0x66) && (com_env.com_rx_buf[4] == 0x03))
 				{
 							com_env.scale_state = power_down;
-							com_env.result_st = 0x0;
 							QPRINTF("power off!\r\n");			
 				}
 				else
@@ -193,7 +191,6 @@ void com_uart_rx(void)
 												{
 														QPRINTF("\r\ndata correct!\r\n");
 														ke_evt_clear(1UL<<EVENT_UART_RX_TIMEOUT_ID);
-														QPRINTF("com_env.result_st %d\r\n",com_env.result_st);
 														ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
 														uint8_t temp_array[10];
 														temp_array[0] = 0x02;
@@ -391,24 +388,8 @@ void com_event_uart_rx_frame_handler(void)
 	for (uint8_t i=0;i<com_data->len;i++)
 			QPRINTF("%X ",com_data->data[i]);
 	QPRINTF("\r\n");
-		if ((com_data->len != 36) && (com_env.result_st == 0x0))
-		{
-			ke_msg_send(com_data);
-		}
-		else
-		{
-			if ((com_data->len == 36) && (com_env.result_st == 0x0))
-			{			
-					com_env.result_st = 0x1;
-					ke_msg_send(com_data);
-			}
-			else
-			{
-					QPRINTF("len:%d ,com_env.result_st:%d\r\n",com_data->len,com_env.result_st);
-					com_uart_rx_start();
-					com_env.com_state = COM_CONN_EMPTY;
-			}
-		}
+	ke_msg_send(com_data);
+
 	ke_timer_clear(APP_COM_RX_TIMEOUT_TIMER, TASK_APP);
 
 	ke_evt_clear(1UL << EVENT_UART_RX_FRAME_ID);
@@ -499,24 +480,7 @@ int app_com_rx_timeout_handler(ke_msg_id_t const msgid, void const *param,
 		for (uint8_t i=0;i<com_data->len;i++)
 				QPRINTF("0x%2X ",com_data->data[i]);
 		QPRINTF("\r\n");
-		if ((com_data->len != 36) && (com_env.result_st == 0x0))
-		{
-			ke_msg_send(com_data);
-		}
-		else
-		{
-			if ((com_data->len == 36) && (com_env.result_st == 0x0))
-			{			
-					ke_msg_send(com_data);
-					com_env.result_st = 0x1;
-			}
-			else
-			{
-					QPRINTF("len:%d ,com_env.result_st:%d\r\n",com_data->len,com_env.result_st);
-					com_uart_rx_start();
-					com_env.com_state = COM_CONN_EMPTY;
-			}
-		}
+		ke_msg_send(com_data);
     
     return (KE_MSG_CONSUMED);
 }

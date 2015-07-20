@@ -36,6 +36,8 @@
 /// Local name
 #define CFG_LOCAL_NAME   "FireBLE Eweight"
 
+#define	MANU_NAME		"TChip"
+
 /// Evaluation board indication
  // The GPIOs used for FireBLE's LED and button are different from FireBLE.
  // If the FireBLE is used, the following macro shall be defined.

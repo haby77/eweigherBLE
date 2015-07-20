@@ -1207,7 +1207,7 @@ uint8_t app_set_adv_data(uint16_t disc_mode)
     memcpy((char *)&app_env.adv_data[5], device_name.name, device_name.namelen);
     len = 5 + device_name.namelen;
 #else
-    nvds_tag_len_t name_length = 31 - 5; // The maximum length of Advertising data is 31 Octets
+    nvds_tag_len_t name_length = BD_NAME_SIZE; // The maximum length of Advertising data is 31 Octets
 
     if (NVDS_OK != nvds_get(NVDS_TAG_DEVICE_NAME, &name_length, &app_env.adv_data[5]))
     {
@@ -1223,6 +1223,23 @@ uint8_t app_set_adv_data(uint16_t disc_mode)
     app_env.adv_data[4] = GAP_AD_TYPE_SHORTENED_NAME;
     len = 5 + name_length;
 #endif
+		
+#if	(defined(CFG_LOCAL_NAME))
+		uint8_t manu_length = strlen(CFG_LOCAL_NAME);
+		if (strlen(CFG_LOCAL_NAME) <= (31 - 2 - len))
+		{
+			strcpy((char *)&app_env.adv_data[len+2], QN_LOCAL_NAME);
+		}
+		else
+		{
+			manu_length = 31 - 2 - len;
+			strcpy((char *)&app_env.adv_data[len+2], "TChip");
+		}
+		app_env.adv_data[len] = manu_length + 1;
+		app_env.adv_data[len + 1] = GAP_AD_TYPE_MANU_SPECIFIC_DATA;
+		len = len + manu_length + 2;
+#endif		
+		
     
     return len;
 }

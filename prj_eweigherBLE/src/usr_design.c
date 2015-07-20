@@ -241,8 +241,8 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 				case QPPS_DAVA_VAL_IND:
 #if		(BLE_EWPT_SERVER)							
 							{
-									wakeup_scale();
-									if (com_env.scale_state == power_on)
+									//wakeup_scale();
+									//if (com_env.scale_state == power_on)
 									{
 											struct qpps_data_val_ind* par = (struct qpps_data_val_ind*)param;
 											for (uint8_t i=0;i<par->length;i++)
@@ -271,11 +271,11 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 													}
 											}
 									}
-									else
-									{
-											uint8_t error[] =  "B";
-											app_qpps_data_send(app_qpps_env->conhdl,0,1,error);
-									}
+//									else
+//									{
+//											uint8_t error[] =  "B";
+//											app_qpps_data_send(app_qpps_env->conhdl,0,1,error);
+//									}
 							}
 #endif
 						break;
@@ -383,7 +383,7 @@ int app_gap_adv_intv_update_timer_handler(ke_msg_id_t const msgid, void const *p
         app_gap_adv_start_req(GAP_GEN_DISCOVERABLE|GAP_UND_CONNECTABLE, 
                                 app_env.adv_data, app_set_adv_data(GAP_GEN_DISCOVERABLE), 
                                 app_env.scanrsp_data, app_set_scan_rsp_data(app_get_local_service_flag()),
-                                GAP_ADV_SLOW_INTV, GAP_ADV_SLOW_INTV);
+                                GAP_ADV_FAST_INTV1, GAP_ADV_FAST_INTV2);
     }
 
     return (KE_MSG_CONSUMED);

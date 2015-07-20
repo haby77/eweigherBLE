@@ -67,7 +67,6 @@ struct com_env_tag
     uint8_t com_rx_len;
     uint8_t com_rx_buf[QPPS_VAL_CHAR_NUM*QPP_DATA_MAX_LEN];
 		uint8_t scale_state;
-		uint8_t result_st;
 		usr_data scale_user_data;
 
 };
