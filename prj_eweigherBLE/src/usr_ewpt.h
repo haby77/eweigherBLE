@@ -110,7 +110,7 @@ extern void scale_event_power_off_handler(void);
 void com_uart_rx(void);
 extern void	wakeup_scale(void);
 extern enum scale_st get_scale_status(void);
-
+extern void app_tx_done(void);
 
 #endif
 /// end of usr_ewpt.h

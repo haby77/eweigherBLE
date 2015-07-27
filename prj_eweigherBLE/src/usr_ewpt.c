@@ -465,6 +465,32 @@ void scale_event_power_off_handler(void)
 
 }
 
+
+void app_tx_done(void)
+{
+    struct ke_msg * msg;
+    //release current message (which was just sent)
+    msg = (struct ke_msg *)co_list_pop_front(&com_env.queue_rx);
+    // Free the kernel message space
+    ke_msg_free(msg);
+    // Check if there is a new message pending for transmission
+    if ((msg = (struct ke_msg *)co_list_pick(&com_env.queue_rx)) != NULL)
+    {
+        // Forward the message to the HCI UART for immediate transmission
+				QPRINTF("\r\n@@@app_tx_done:");
+				for (uint8_t i = 0;i<msg->param_len;i++)
+					QPRINTF("%c",((uint8_t *)&msg->param)[i]);
+				QPRINTF("\r\n");		
+				app_qpps_data_send(app_qpps_env->conhdl, 0, msg->param_len, ((uint8_t *)&msg->param));
+    }
+		else
+		{
+			QPRINTF("\r\n@@@co_list:om_env.queue_rx is empty\r\n");
+		}
+		
+		QPRINTF("app_tx_done\r\n");
+}
+
 void app_push(struct ke_msg *msg);
 void dev_send_to_app(struct app_uart_data_ind *param)
 {
@@ -495,7 +521,7 @@ void dev_send_to_app(struct app_uart_data_ind *param)
 					memcpy(&buf_20[1],param->data+send_len, 19);
 					send_len += 19;
 				}
-				buf_20[0] = i;
+				//buf_20[0] = i;
 				if(send_len - len > 0)
 				{
 					memset(&param->data[20-(send_len - len)], 0, send_len - len);
@@ -516,6 +542,10 @@ void app_push(struct ke_msg *msg)
 		if(app_qpps_env->char_status)
 		{
 			app_qpps_env->char_status = 0;
+			QPRINTF("\r\n@@@app_push:");
+			for (uint8_t i = 0;i<msg->param_len;i++)
+				QPRINTF("%c",((uint8_t *)&msg->param)[i]);
+			QPRINTF("\r\n");
 			app_qpps_data_send(app_qpps_env->conhdl, 0, msg->param_len, ((uint8_t *)&msg->param));
 		}
 }
@@ -661,6 +691,10 @@ void com_tx_done(void)
         // Forward the message to the HCI UART for immediate transmission
         com_uart_write(msg);
     }
+		else
+		{
+			app_qpps_env->char_status = 1;
+		}
 }
 
 int app_scale_power_on_timer_handler(ke_msg_id_t const msgid, void const *param,

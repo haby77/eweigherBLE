@@ -412,6 +412,8 @@ void app_task_msg_hdl(ke_msg_id_t const msgid, void const *param)
 				
 				case	QPPS_DATA_SEND_CFM	:							
 					{
+						if (!co_list_is_empty(&com_env.queue_rx))
+							app_tx_done();
 						com_env.com_state = COM_TRAN;
 						ke_evt_set(1UL << EVENT_COM_WAKEUP_ID);
 /*						
