@@ -1207,18 +1207,15 @@ uint8_t app_set_adv_data(uint16_t disc_mode)
     memcpy((char *)&app_env.adv_data[5], device_name.name, device_name.namelen);
     len = 5 + device_name.namelen;
 #else
-    nvds_tag_len_t name_length = 31 - 5; // The maximum length of Advertising data is 31 Octets
+				
+    nvds_tag_len_t name_length = BD_NAME_SIZE; // The maximum length of Advertising data is 31 Octets
+		app_gap_set_devname_req((uint8_t *)QN_LOCAL_NAME,name_length);
 
-    if (NVDS_OK != nvds_get(NVDS_TAG_DEVICE_NAME, &name_length, &app_env.adv_data[5]))
-    {
-        // NVDS is empty, use default name
-        name_length = strlen(QN_LOCAL_NAME);
-        strcpy((char *)&app_env.adv_data[5], QN_LOCAL_NAME);
-    }
-    else
-    {
-        name_length--; // Discard '\0'
-    }
+		// NVDS is empty, use default name
+		name_length = strlen(QN_LOCAL_NAME);
+		strcpy((char *)&app_env.adv_data[5], QN_LOCAL_NAME);
+		name_length--; // Discard '\0'
+		
     app_env.adv_data[3] = name_length + 1;
     app_env.adv_data[4] = GAP_AD_TYPE_SHORTENED_NAME;
     len = 5 + name_length;
