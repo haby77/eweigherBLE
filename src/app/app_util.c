@@ -1205,10 +1205,13 @@ uint8_t app_set_adv_data(uint16_t disc_mode)
 #else
     nvds_tag_len_t name_length = BD_NAME_SIZE; // The maximum length of Advertising data is 31 Octets
 
-    if (NVDS_OK != nvds_get(NVDS_TAG_DEVICE_NAME, &name_length, &app_env.adv_data[5]))
+//    if (NVDS_OK != nvds_get(NVDS_TAG_DEVICE_NAME, &name_length, &app_env.adv_data[5]))
+    if (NVDS_OK == nvds_get(NVDS_TAG_DEVICE_NAME, &name_length, &app_env.adv_data[5]))
     {
         // NVDS is empty, use default name
-        name_length = strlen(QN_LOCAL_NAME);
+				app_gap_set_devname_req((uint8_t *)QN_LOCAL_NAME,strlen(QN_LOCAL_NAME));
+				name_length = (strlen(QN_LOCAL_NAME) > BD_NAME_SIZE) ? BD_NAME_SIZE : strlen(QN_LOCAL_NAME);
+        name_length--; // Discard '\0'
         strcpy((char *)&app_env.adv_data[5], QN_LOCAL_NAME);
     }
     else

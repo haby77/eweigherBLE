@@ -34,7 +34,7 @@
 #endif
 
 /// Local name
-#define CFG_LOCAL_NAME   "FireBLE Eweight"
+#define CFG_LOCAL_NAME   "Eweight"
 
 /// Evaluation board indication
  // The GPIOs used for FireBLE's LED and button are different from FireBLE.

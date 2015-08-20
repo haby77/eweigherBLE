@@ -9,58 +9,58 @@
 struct com_env_tag  com_env;
 
 /*
- 
+
 * COM INIT
- 
+
 ****************************************************************************************
- 
+
 */
 void com_gpio_init(void)
 {
-/* 	no need	
-		gpio_set_direction(COM_WAKEUP_TRIGGER,GPIO_OUTPUT);
-		gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_HIGH);
-	
-		gpio_wakeup_config(COM_WAKEUP,GPIO_WKUP_BY_LOW);
-		gpio_enable_interrupt(COM_WAKEUP);
-*/	
-	
-		//set SCALE_WAKEUP_PIN to wakeup scale,a 50ms low pulse
-		gpio_set_direction(SCALE_WAKEUP_PIN,GPIO_OUTPUT);
-		gpio_write_pin(SCALE_WAKEUP_PIN,GPIO_HIGH);
-	
-		//set a com start event
-		if(KE_EVENT_OK != ke_evt_callback_set(EVENT_COM_WAKEUP_ID, 
-                                            app_event_com_wakeup_handler))
+    /* 	no need
+    		gpio_set_direction(COM_WAKEUP_TRIGGER,GPIO_OUTPUT);
+    		gpio_write_pin(COM_WAKEUP_TRIGGER,GPIO_HIGH);
+
+    		gpio_wakeup_config(COM_WAKEUP,GPIO_WKUP_BY_LOW);
+    		gpio_enable_interrupt(COM_WAKEUP);
+    */
+
+    //set SCALE_WAKEUP_PIN to wakeup scale,a 50ms low pulse
+    gpio_set_direction(SCALE_WAKEUP_PIN,GPIO_OUTPUT);
+    gpio_write_pin(SCALE_WAKEUP_PIN,GPIO_HIGH);
+
+    //set a com start event
+    if(KE_EVENT_OK != ke_evt_callback_set(EVENT_COM_WAKEUP_ID,
+                                          app_event_com_wakeup_handler))
     {
         ASSERT_ERR(0);
     }
-	
+
 }
- 
+
 void com_init(void)
 {
     com_env.com_state = COM_TRAN;
 
-    //for com uart tx  
+    //for com uart tx
     com_env.tx_state = COM_UART_TX_IDLE;	//initialize tx state
     co_list_init(&com_env.queue_tx);			//init TX queue
 
-		com_gpio_init();
-     
+    com_gpio_init();
+
     if(KE_EVENT_OK != ke_evt_callback_set(EVENT_UART_TX_ID, com_tx_done))
-    ASSERT_ERR(0);
+        ASSERT_ERR(0);
     if(KE_EVENT_OK != ke_evt_callback_set(EVENT_UART_RX_FRAME_ID, com_event_uart_rx_frame_handler))
-    ASSERT_ERR(0);
+        ASSERT_ERR(0);
     if(KE_EVENT_OK != ke_evt_callback_set(EVENT_UART_RX_TIMEOUT_ID, com_event_uart_rx_timeout_handler))
-    ASSERT_ERR(0);
+        ASSERT_ERR(0);
     if(KE_EVENT_OK != ke_evt_callback_set(EVENT_SCALE_POWER_ON_ID, scale_event_power_on_handler))
-    ASSERT_ERR(0);
+        ASSERT_ERR(0);
     if(KE_EVENT_OK != ke_evt_callback_set(EVENT_SCALE_POWER_OFF_ID, scale_event_power_off_handler))
-    ASSERT_ERR(0);
-		
-		com_uart_rx_start();
-		
+        ASSERT_ERR(0);
+
+    com_uart_rx_start();
+
 }
 
 /*void com_wakeup_cb(void)
@@ -87,99 +87,100 @@ void com_init(void)
 */
 
 /*
- 
+
 * SCALE WAKEUP
- 
+
 ****************************************************************************************
- 
+
 */
 void	wakeup_scale(void)
 {
-		QPRINTF("\r\n@@@Wakeup Scale!\r\n");
-		gpio_write_pin(SCALE_WAKEUP_PIN,GPIO_LOW);
-		ke_timer_set(APP_COM_SCALE_WAKEUP_TIMER,TASK_APP,10);
+    QPRINTF("\r\n@@@Wakeup Scale!\r\n");
+    gpio_write_pin(SCALE_WAKEUP_PIN,GPIO_LOW);
+    ke_timer_set(APP_COM_SCALE_WAKEUP_TIMER,TASK_APP,10);
 }
 
 int app_com_scale_wakeup_timer_handler(ke_msg_id_t const msgid, void const *param,
-                               ke_task_id_t const dest_id, ke_task_id_t const src_id)
+                                       ke_task_id_t const dest_id, ke_task_id_t const src_id)
 {
-		gpio_write_pin(SCALE_WAKEUP_PIN,GPIO_HIGH);
-		ke_timer_clear(APP_COM_SCALE_WAKEUP_TIMER,TASK_APP);
-		if (SCALE_POWER_ON == get_scale_status())
-		{
-			uint8_t status =  SCALE_POWER_ON;
-			app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(status),&status);
-		}
-		else
-		{
-			uint8_t status =  SCALE_POWER_OFF;
-			app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(status),&status);
-		}
-		return(KE_MSG_CONSUMED);
+    gpio_write_pin(SCALE_WAKEUP_PIN,GPIO_HIGH);
+    ke_timer_clear(APP_COM_SCALE_WAKEUP_TIMER,TASK_APP);
+    if (SCALE_POWER_ON == get_scale_status())
+    {
+        uint8_t status =  SCALE_POWER_ON;
+        app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(status),&status);
+    }
+    else
+    {
+        uint8_t status =  SCALE_POWER_OFF;
+        app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(status),&status);
+    }
+    return(KE_MSG_CONSUMED);
 }
 
 
 enum scale_st get_scale_status(void)
 {
-	return (gpio_read_pin(SCALE_STATUS_PIN) ==GPIO_HIGH ? SCALE_POWER_ON : SCALE_POWER_DOWN);
+    return (gpio_read_pin(SCALE_STATUS_PIN) ==GPIO_HIGH ? SCALE_POWER_ON : SCALE_POWER_DOWN);
 }
 /*
- 
+
 * COM STATUS PROCESS
- 
+
 ****************************************************************************************
- 
+
 */
 void	app_com_wakeup_process(void)
-{		
-		switch(com_env.com_state)
-		{
-			case COM_IDLE:
-			{
-				/*
-				if (SCALE_POWER_ON == get_scale_status())
-				{
-					com_env.com_state = COM_TRAN;
-					com_uart_rx_start();
-					QPRINTF("\r\n@@@ewpt com rx start!\r\n");
-				}
-				else
-				*/
+{
+    switch(com_env.com_state)
+    {
+    case COM_IDLE:
+    {
+        /*
+        if (SCALE_POWER_ON == get_scale_status())
+        {
+        	com_env.com_state = COM_TRAN;
+        	com_uart_rx_start();
+        	QPRINTF("\r\n@@@ewpt com rx start!\r\n");
+        }
+        else
+        */
 #ifdef	CATCH_LOG
-				QPRINTF("\r\n@@@COM_IDLE!\r\n");	
+        QPRINTF("\r\n@@@COM_IDLE!\r\n");
 #endif
-				break;
-			}
-			
-			case COM_TRAN:
-			{
-/*				
-				if (SCALE_POWER_ON == get_scale_status())
-				{
-*/
-					uart_rx_enable(EWPT_COM_UART,MASK_ENABLE);
-					com_uart_rx_start();
+        break;
+    }
+
+    case COM_TRAN:
+    {
+        /*
+        				if (SCALE_POWER_ON == get_scale_status())
+        				{
+        */
+        uart_rx_enable(EWPT_COM_UART,MASK_ENABLE);
+        com_uart_rx_start();
 #ifdef	CATCH_LOG
-					QPRINTF("\r\n@@@COM_TRAN!\r\n");
+        QPRINTF("\r\n@@@COM_TRAN!\r\n");
 #endif
-				/*
-				}
-				else
-				{
-					com_env.com_state = COM_IDLE;					
-					uart_rx_enable(EWPT_COM_UART,MASK_DISABLE);
-				}
-				*/
-				break;
-			}
-			
-			case COM_BUSY:
-			{
-				break;
-			}
-							
-			default :break;
-		}
+        /*
+        }
+        else
+        {
+        	com_env.com_state = COM_IDLE;
+        	uart_rx_enable(EWPT_COM_UART,MASK_DISABLE);
+        }
+        */
+        break;
+    }
+
+    case COM_BUSY:
+    {
+        break;
+    }
+
+    default :
+        break;
+    }
 }
 
 /**
@@ -192,23 +193,23 @@ void app_event_com_wakeup_handler(void)
 {
     // delay 20ms to debounce
     ke_evt_clear(1UL << EVENT_COM_WAKEUP_ID);
-	  
-		app_com_wakeup_process();
+
+    app_com_wakeup_process();
 }
 
 
 
 /*
- 
+
 * COM RECEIVE
- 
+
 ****************************************************************************************
- 
+
 */
 void	com_uart_rx_start(void)
 {
 #ifdef	CATCH_LOG
-		QPRINTF("com_uart_rx_start\r\n");
+    QPRINTF("com_uart_rx_start\r\n");
 #endif
     com_env.com_rx_len = 0;
     uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
@@ -216,14 +217,14 @@ void	com_uart_rx_start(void)
 
 void com_uart_rx(void)
 {
-		com_env.com_rx_len++;
-		if (com_env.com_rx_len >= (10 * QPP_DATA_MAX_LEN))
-			ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
-		else
-		{
-			uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
-			ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
-		}
+    com_env.com_rx_len++;
+    if (com_env.com_rx_len >= (10 * QPP_DATA_MAX_LEN))
+        ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
+    else
+    {
+        uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
+        ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
+    }
 }
 /****************************************************************************
 //void com_uart_rx(void)
@@ -231,17 +232,17 @@ void com_uart_rx(void)
 //		com_env.com_rx_len++;
 //		com_env.com_state = COM_BUSY;
 //		uint8_t status,err;
-//	
+//
 //		//if the 1 < length <40,that's a data,or it will be first byte or err
 //		if (com_env.com_rx_len > 1 && com_env.com_rx_len < 40)
 //		{
-//			  // if it's a power off command 
+//			  // if it's a power off command
 //				if ((com_env.com_rx_len == 6) && (com_env.com_rx_buf[0] == 0x02) && (com_env.com_rx_buf[1] == 0x6f) && (com_env.com_rx_buf[2] == 0x66) && (com_env.com_rx_buf[3] == 0x66) && (com_env.com_rx_buf[4] == 0x03) && (com_env.com_rx_buf[com_env.com_rx_len - 1] == 0xE0))
 //				{
 //							com_env.result_st = 0x0;
-//#ifdef	CATCH_LOG					
+//#ifdef	CATCH_LOG
 //							QPRINTF("power off!\r\n");
-//#endif				
+//#endif
 //							uint8_t status;
 //							status = SCALE_POWER_DOWN;
 //							app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(uint8_t),&status);
@@ -255,7 +256,7 @@ void com_uart_rx(void)
 //								// if it's a power on command
 //								if(com_env.com_rx_len == 4 && com_env.com_rx_buf[1] == 0x6f && com_env.com_rx_buf[2] == 0x6e)
 //								{
-//#ifdef	CATCH_LOG					
+//#ifdef	CATCH_LOG
 //									QPRINTF("power on!\r\n");
 //#endif
 //							status = SCALE_POWER_ON;
@@ -269,11 +270,11 @@ void com_uart_rx(void)
 ////										app_qpps_data_send(app_qpps_env->conhdl,0,sizeof(uint8_t),&result);
 ////									}
 //								}
-//								if(com_env.com_rx_len == 5 && com_env.com_rx_buf[1] == 0x6f 
+//								if(com_env.com_rx_len == 5 && com_env.com_rx_buf[1] == 0x6f
 //									&& com_env.com_rx_buf[2] == 0x66 && com_env.com_rx_buf[3] == 0x66)
 //								{
 //										ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
-//										uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);	
+//										uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
 //								}
 //								else	//it's a data command or  sync resp
 //								{
@@ -291,7 +292,7 @@ void com_uart_rx(void)
 //														{
 //															QPRINTF("\r\ndata correct!\r\n");
 //															ke_evt_clear(1UL<<EVENT_UART_RX_TIMEOUT_ID);
-//		#ifdef	CATCH_LOG					
+//		#ifdef	CATCH_LOG
 //															QPRINTF("com_env.result_st %d\r\n",com_env.result_st);
 //		#endif
 //															ke_evt_set(1UL << EVENT_UART_RX_FRAME_ID);
@@ -311,7 +312,7 @@ void com_uart_rx(void)
 //														else
 //														{
 //																QPRINTF("CRC verify error!\r\n");
-//																err = SCALE_COM_CRC_CHECKOUT_ERR;						
+//																err = SCALE_COM_CRC_CHECKOUT_ERR;
 //																app_qpps_data_send(app_qpps_env->conhdl,0,1,&err);
 //																com_uart_rx_start();
 //														}
@@ -319,9 +320,9 @@ void com_uart_rx(void)
 //												else	//data length err,continue receive data
 //												{
 //														ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
-//														uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);								
+//														uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
 //												}
-//												
+//
 //										}
 //										else
 //										{
@@ -355,7 +356,7 @@ void com_uart_rx(void)
 //												{
 //														QPRINTF("\r\n@@@com_env.com_rx_len:%d\r\n",com_env.com_rx_len);
 //														ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
-//														uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);								
+//														uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
 //												}
 //											}
 //											else
@@ -367,7 +368,7 @@ void com_uart_rx(void)
 //								}
 //						}
 //						else  //it's not a end flag and continue receive data
-//						{							
+//						{
 //										ke_evt_set(1UL << EVENT_UART_RX_TIMEOUT_ID);
 //										uart_read(EWPT_COM_UART, &com_env.com_rx_buf[com_env.com_rx_len], 1, com_uart_rx);
 //						}
@@ -396,7 +397,7 @@ void com_uart_rx(void)
 //#ifdef	CATCH_LOG
 //					QPRINTF("\r\n@@@First byte error!\r\n");
 //#endif
-//							err = SCALE_COM_RX_FIRST_BYTE_ERR;						
+//							err = SCALE_COM_RX_FIRST_BYTE_ERR;
 //							app_qpps_data_send(app_qpps_env->conhdl,0,1,&err);
 //							com_uart_rx_start();
 //						}
@@ -406,7 +407,7 @@ void com_uart_rx(void)
 //#ifdef	CATCH_LOG
 //					QPRINTF("\r\n@@@length error!\r\n");
 //#endif
-//						err = SCALE_COM_RX_LENGTH_ERR;						
+//						err = SCALE_COM_RX_LENGTH_ERR;
 //						app_qpps_data_send(app_qpps_env->conhdl,0,1,&err);
 //						com_uart_rx_start();
 //				}
@@ -431,33 +432,33 @@ void com_uart_rx(void)
 
 void com_event_uart_rx_frame_handler(void)
 {
-	ke_timer_clear(APP_COM_RX_TIMEOUT_TIMER, TASK_APP);
+    ke_timer_clear(APP_COM_RX_TIMEOUT_TIMER, TASK_APP);
 //	uart_rx_int_enable(EWPT_COM_UART, MASK_DISABLE);  //disable uart rx interrupt
-	QPRINTF("com_event_uart_rx_frame_handler\r\n");
-	struct app_uart_data_ind *com_data = ke_msg_alloc(APP_COM_UART_RX_DONE_IND,
-															 TASK_APP,
-															 TASK_APP,
-															 com_env.com_rx_len);
-	com_data->len=com_env.com_rx_len - 1;
-	memcpy(com_data->data,com_env.com_rx_buf,com_data->len);
-	for (uint8_t i=0;i<com_data->len;i++)
-			QPRINTF("%02X ",com_data->data[i]);
-	QPRINTF("\r\n");
-	ke_msg_send(com_data);
-	
-	ke_evt_clear(1UL << EVENT_UART_RX_FRAME_ID);
+    QPRINTF("com_event_uart_rx_frame_handler\r\n");
+    struct app_uart_data_ind *com_data = ke_msg_alloc(APP_COM_UART_RX_DONE_IND,
+                                         TASK_APP,
+                                         TASK_APP,
+                                         com_env.com_rx_len);
+    com_data->len=com_env.com_rx_len - 1;
+    memcpy(com_data->data,com_env.com_rx_buf,com_data->len);
+    for (uint8_t i=0; i<com_data->len; i++)
+        QPRINTF("%02X ",com_data->data[i]);
+    QPRINTF("\r\n");
+    ke_msg_send(com_data);
+
+    ke_evt_clear(1UL << EVENT_UART_RX_FRAME_ID);
 }
 
 void com_event_uart_rx_timeout_handler(void)
 {
-	ke_timer_set(APP_COM_RX_TIMEOUT_TIMER, TASK_APP, COM_FRAME_TIMEOUT);
+    ke_timer_set(APP_COM_RX_TIMEOUT_TIMER, TASK_APP, COM_FRAME_TIMEOUT);
 
-	ke_evt_clear(1UL << EVENT_UART_RX_TIMEOUT_ID);
+    ke_evt_clear(1UL << EVENT_UART_RX_TIMEOUT_ID);
 }
 
 void scale_event_power_on_handler(void)
 {
-		
+
 }
 
 void scale_event_power_off_handler(void)
@@ -477,61 +478,69 @@ void app_tx_done(void)
     if ((msg = (struct ke_msg *)co_list_pick(&com_env.queue_rx)) != NULL)
     {
         // Forward the message to the HCI UART for immediate transmission
-				QPRINTF("\r\n@@@app_tx_done:");
-				for (uint8_t i = 0;i<msg->param_len;i++)
-					QPRINTF("%c",((uint8_t *)&msg->param)[i]);
-				QPRINTF("\r\n");		
-				app_qpps_data_send(app_qpps_env->conhdl, 0, msg->param_len, ((uint8_t *)&msg->param));
+        QPRINTF("\r\n@@@app_tx_done:");
+        for (uint8_t i = 0; i<msg->param_len; i++)
+            QPRINTF("%c",((uint8_t *)&msg->param)[i]);
+        QPRINTF("\r\n");
+        app_qpps_data_send(app_qpps_env->conhdl, 0, msg->param_len, ((uint8_t *)&msg->param));
     }
-		else
-		{
-			QPRINTF("\r\n@@@co_list:om_env.queue_rx is empty\r\n");
-		}
-		
-		QPRINTF("app_tx_done\r\n");
+    else
+    {
+        QPRINTF("\r\n@@@co_list:om_env.queue_rx is empty\r\n");
+    }
+
+    QPRINTF("app_tx_done\r\n");
 }
 
 void app_push(struct ke_msg *msg);
 void dev_send_to_app(struct app_uart_data_ind *param)
 {
-	uint8_t *buf_20;
-	int16_t len = param->len;
-	int16_t send_len = 0;
-#ifdef	CATCH_LOG	
-	QPRINTF("\r\n@@@len %d\r\n@@@data 0x",len);
-	
-	for(uint8_t j = 0;j<len;j++)
-		QPRINTF("%c",param->data[j]);
-	QPRINTF("\r\n");
-#endif	
-	if(app_qpps_env->char_status)
-	{
-		for(uint8_t i =0;send_len < len;i++)
-		{
-			buf_20 = (uint8_t*)ke_msg_alloc(0, 0, 0, 20);
-			if(buf_20 != NULL)
-			{
-				if(i == 0)
-				{
-					memcpy(buf_20,&param->data[0], 20);
-					send_len += 20;
-				}
-				else
-				{
-					memcpy(&buf_20[1],param->data+send_len, 19);
-					send_len += 19;
-				}
-				//buf_20[0] = i;
-				if(send_len - len > 0)
-				{
-					memset(&param->data[20-(send_len - len)], 0, send_len - len);
-				}
-				app_push(ke_param2msg(buf_20));
-			}
-			
-		}
-		
-	}
+    uint8_t *buf_20;
+    int16_t len = param->len;
+    int16_t send_len = 0;
+#ifdef	CATCH_LOG
+    QPRINTF("\r\n@@@len %d\r\n@@@data 0x",len);
+
+    for(uint8_t j = 0; j<len; j++)
+        QPRINTF("%c",param->data[j]);
+    QPRINTF("\r\n");
+#endif
+    if(app_qpps_env->char_status)
+    {
+        for(uint8_t i =0; send_len < len; i++)
+        {
+            if (len > 20) //Split data into package when len longger than 20
+            {
+                if (len - send_len > 20)
+                {
+                    buf_20 = (uint8_t*)ke_msg_alloc(0, 0, 0, 20);
+                    if(buf_20 != NULL)
+                    {
+                        memcpy(buf_20,param->data+send_len,20);
+                        send_len+=20;
+                    }
+                }
+                else
+                {
+                    buf_20 = (uint8_t *)ke_msg_alloc(0,0,0,len-send_len);
+                    if (buf_20 != NULL)
+                    {
+                        memcpy(buf_20,param->data+send_len,len-send_len);
+                        send_len = len;
+                    }
+                }
+                //push the package to kernel queue.
+                app_push(ke_param2msg(buf_20));
+            }
+            else	//not longger ther 20 send data directely
+            {
+                app_qpps_data_send(app_qpps_env->conhdl,0,len,param->data);
+                send_len = len;
+            }
+
+        }
+
+    }
 }
 
 void app_push(struct ke_msg *msg)
@@ -539,32 +548,32 @@ void app_push(struct ke_msg *msg)
     // Push the message into the list of messages pending for transmission
     co_list_push_back(&com_env.queue_rx, &msg->hdr);
 
-		if(app_qpps_env->char_status)
-		{
-			app_qpps_env->char_status = 0;
-			QPRINTF("\r\n@@@app_push:");
-			for (uint8_t i = 0;i<msg->param_len;i++)
-				QPRINTF("%c",((uint8_t *)&msg->param)[i]);
-			QPRINTF("\r\n");
-			app_qpps_data_send(app_qpps_env->conhdl, 0, msg->param_len, ((uint8_t *)&msg->param));
-		}
+    if(app_qpps_env->char_status)
+    {
+        app_qpps_env->char_status = 0;
+        QPRINTF("\r\n@@@app_push:");
+        for (uint8_t i = 0; i<msg->param_len; i++)
+            QPRINTF("%c",((uint8_t *)&msg->param)[i]);
+        QPRINTF("\r\n");
+        app_qpps_data_send(app_qpps_env->conhdl, 0, msg->param_len, ((uint8_t *)&msg->param));
+    }
 }
 
 
 int app_com_uart_rx_done_ind_handler(ke_msg_id_t const msgid, void const *param,
-                               ke_task_id_t const dest_id, ke_task_id_t const src_id)
+                                     ke_task_id_t const dest_id, ke_task_id_t const src_id)
 {
-		
-		switch(msgid)
+
+    switch(msgid)
     {
-        case APP_COM_UART_RX_DONE_IND:
-        {
-            struct app_uart_data_ind* frame = (struct app_uart_data_ind*)param;
-					
-						dev_send_to_app(frame);
-            
+    case APP_COM_UART_RX_DONE_IND:
+    {
+        struct app_uart_data_ind* frame = (struct app_uart_data_ind*)param;
+
+        dev_send_to_app(frame);
+
 //            if(frame->len) //have data
-//            { 
+//            {
 //                //calculate page num;
 //                 uint8_t pagket_res = frame->len%QPP_DATA_MAX_LEN;
 //                 uint8_t pagket_num;
@@ -572,68 +581,70 @@ int app_com_uart_rx_done_ind_handler(ke_msg_id_t const msgid, void const *param,
 //                 pagket_num = frame->len/QPP_DATA_MAX_LEN + 1;
 //                 else
 //                 pagket_num = frame->len/QPP_DATA_MAX_LEN;
-//								                  
-//                 uint8_t sent_pagket=0; 
+//
+//                 uint8_t sent_pagket=0;
 
 //                while(sent_pagket < pagket_num)
 //                {
 //												app_qpps_env->char_status &= ~QPPS_VALUE_NTF_CFG;
-//											 
+//
 //                         if((pagket_res)&&(pagket_num-sent_pagket==1)/* && (com_env.result_st == 0x0)*/)
 //														app_qpps_data_send(app_qpps_env->conhdl,0, pagket_res, (frame->data+sent_pagket*20));
 //                         else
 //												 {
-//														app_qpps_data_send(app_qpps_env->conhdl,0, QPP_DATA_MAX_LEN, (frame->data+sent_pagket*20)); 
+//														app_qpps_data_send(app_qpps_env->conhdl,0, QPP_DATA_MAX_LEN, (frame->data+sent_pagket*20));
 //												 }
-//                         
+//
 //                         sent_pagket++;
 //                }
 //            }
-        }break;
-        default :break;
     }
-       
+    break;
+    default :
+        break;
+    }
+
     return (KE_MSG_CONSUMED);
 }
 
 int app_com_rx_timeout_handler(ke_msg_id_t const msgid, void const *param,
                                ke_task_id_t const dest_id, ke_task_id_t const src_id)
 {
-		QPRINTF("\r\n@@@app_com_rx_timeout_handler\r\n");
-    uart_rx_int_enable(EWPT_COM_UART, MASK_DISABLE);  //disable uart rx interrupt 
+    QPRINTF("\r\n@@@app_com_rx_timeout_handler\r\n");
+    uart_rx_int_enable(EWPT_COM_UART, MASK_DISABLE);  //disable uart rx interrupt
     struct app_uart_data_ind *com_data = ke_msg_alloc(APP_COM_UART_RX_DONE_IND,
-                                 TASK_APP,
-                                 TASK_APP,
-                                 com_env.com_rx_len+1);
+                                         TASK_APP,
+                                         TASK_APP,
+                                         com_env.com_rx_len+1);
     com_data->len=com_env.com_rx_len;
     memcpy(com_data->data,com_env.com_rx_buf,com_env.com_rx_len);
-		for (uint8_t i=0;i<com_data->len;i++)
-				QPRINTF("0x%2X ",com_data->data[i]);
-		QPRINTF("\r\n");
+    for (uint8_t i=0; i<com_data->len; i++)
+        QPRINTF("0x%2X ",com_data->data[i]);
+    QPRINTF("\r\n");
 
-		ke_msg_send(com_data);
-    
+    ke_msg_send(com_data);
+
     return (KE_MSG_CONSUMED);
 }
 /*
- 
+
 * COM TX
- 
+
 ****************************************************************************************
- 
+
 */
 void app_event_com_tx_handler(void)
 {
-	ke_evt_set(1UL<<EVENT_UART_TX_ID);
+    ke_evt_set(1UL<<EVENT_UART_TX_ID);
 }
 //
 void com_uart_write(struct ke_msg *msg)
 {
     //go to start tx state
     com_env.tx_state = COM_UART_TX_ONGOING;
-		
+
     uart_write(EWPT_COM_UART, ((uint8_t *)&msg->param), msg->param_len, app_event_com_tx_handler);
-		delay(0x3fff);
+    delay(0x3fff);
 }
 // Push msg into eaci tx queue
 static void com_push(struct ke_msg *msg)
@@ -662,17 +673,17 @@ void com_pdu_send(uint8_t len, uint8_t *par)
     // Save the PDU in the MSG
     memcpy(msg_param, par, len);
 
-     //extract the ke_msg pointer from the param passed and push it in HCI queue
+    //extract the ke_msg pointer from the param passed and push it in HCI queue
     com_push(ke_param2msg(msg_param));
 }
 
- 
- /**
- ****************************************************************************************
- * @brief After-process when one PDU has been sent.
- *
- ****************************************************************************************
- */
+
+/**
+****************************************************************************************
+* @brief After-process when one PDU has been sent.
+*
+****************************************************************************************
+*/
 
 void com_tx_done(void)
 {
@@ -691,23 +702,23 @@ void com_tx_done(void)
         // Forward the message to the HCI UART for immediate transmission
         com_uart_write(msg);
     }
-		else
-		{
-			app_qpps_env->char_status = 1;
-		}
+    else
+    {
+        app_qpps_env->char_status = 1;
+    }
 }
 
 int app_scale_power_on_timer_handler(ke_msg_id_t const msgid, void const *param,
-                               ke_task_id_t const dest_id, ke_task_id_t const src_id)
+                                     ke_task_id_t const dest_id, ke_task_id_t const src_id)
 {
-    
+
     return (KE_MSG_CONSUMED);
 }
 
 int app_scale_power_off_timer_handler(ke_msg_id_t const msgid, void const *param,
-                               ke_task_id_t const dest_id, ke_task_id_t const src_id)
+                                      ke_task_id_t const dest_id, ke_task_id_t const src_id)
 {
-    
+
     return (KE_MSG_CONSUMED);
 }
 
@@ -718,7 +729,7 @@ int app_scale_power_off_timer_handler(ke_msg_id_t const msgid, void const *param
 //{
 //    //go to start tx state
 //    com_env.tx_state = COM_UART_TX_ONGOING;
-//		
+//
 //    uart_write(EWPT_COM_UART, ((uint8_t *)&msg->param), msg->param_len, app_event_com_tx_handler);
 //		delay(0x1fff);
 //}
